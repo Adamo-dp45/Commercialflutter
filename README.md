@@ -12,7 +12,7 @@ authentifié** : l'app consomme l'API interne via **JWT** (LexikJWT + refresh ge
 ```bash
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # génère *.freezed.dart / *.g.dart
-flutter run --dart-define=API_BASE_URL=http://localhost:8000
+flutter run --dart-define=API_BASE_URL=https://apitransport.socafpesage.com http://localhost:8000
 ```
 
 - `API_BASE_URL` : racine du backend Symfony/API Platform (sans `/api`).
@@ -100,3 +100,73 @@ flutter analyze
 ```
 
 Après toute modification d'un modèle `@freezed`, relancer `build_runner`.
+
+
+
+
+## Brouillon
+
+Ça change tout — et ça confirme exactement la discordance que j'avais repérée. Un **admin de gare** (`ROLE_ADMIN_GARE`) est autorisé à vendre côté backend par un **bypass** (l'entité `Ticket` est gare-scoped), **sans** permission `Ticket/CREER` explicite. Or le `can()` de l'app ne reproduit **pas** ce bypass :
+
+```dart
+bool get isAdmin => roles.contains('ROLE_ADMIN') || roles.contains('ROLE_SUPER_ADMIN'); // ROLE_ADMIN_GARE absent !
+bool can(String entity, String action) {
+  if (isAdmin) return true;
+  return permissions.any(...); // → false pour un admin gare sans permission explicite
+}
+```
+
+→ backend autorise la vente, mais l'app **masque le bouton**. Je vérifie sur données réelles : comment `ROLE_ADMIN_GARE` est attribué, et l'admin-gare de test a-t-il (ou non) la permission explicite ?
+
+Un seul rôle RBAC existe, et l'utilisateur 3 (commercial des voyages 24/26/34) n'a **aucun** `user_role` → il est autorisé autrement. Je regarde `User::getRoles()` (dérivation de `ROLE_ADMIN_GARE`) et l'utilisateur 3 :
+
+`getRoles()` = colonne `roles` + `ROLE_USER`, et `/api/me` sérialise ça. Donc un admin de gare reçoit `roles: ["ROLE_ADMIN_GARE","ROLE_USER"]` mais **sans** permission `Ticket/CREER` (il compte sur le bypass) → `can()` = false → bouton masqué. Je confirme sur l'utilisateur 3 (l'admin de gare de test) :
+
+**Bug confirmé sur données réelles.** L'utilisateur 3 (`llll@gmail.com`, l'admin de gare affecté comme commercial) : `roles: ["ROLE_USER","ROLE_ADMIN_GARE"]`, `userRoles: []` (aucune permission explicite). Donc côté app : `isAdmin`=false (pas ROLE_ADMIN), permissions vides → `can('Ticket','CREER')`=false → **bouton masqué**. Alors que le backend l'autorise (bypass admin-gare sur `Ticket` gare-scoped).
+
+Le correctif : le `can()` de l'app doit **refléter le backend** (bypass admin-gare pour les entités gare-scoped). Je récupère la liste exacte et je regarde tous les usages de `can()`/`isAdmin` :
+
+**Cause racine confirmée et généralisée** : la liste backend est `['Voyage','Ticket','Reservation','Courrier','Bagage','User','Role']`, et TOUS les `can()` de l'app portent sur des entités gare-scoped (`Ticket`, `Bagage`). Donc pour un admin de gare commercial, **tout est cassé** (vendre, modifier billet, créer/modifier bagage) — un seul correctif règle tout : faire refléter le bypass admin-gare par `can()`.
+
+J'applique le correctif dans le modèle :
+
+Correctif appliqué. Je nettoie la commande de diagnostic jetable (banc d'essai) et je vérifie que le Dart compile :
+
+Corrigé et vérifié (`flutter analyze` : aucun problème). Banc d'essai nettoyé (commande de diagnostic supprimée, cache backend vidé).
+
+## Le bug — cause racine (prouvée sur données réelles)
+
+Ce n'était **pas** côté backend : le backend autorise bien la vente. C'était une **désynchronisation entre le `can()` de l'app et le `PermissionVoter` du backend**.
+
+Le backend accorde à un **`ROLE_ADMIN_GARE`** un *bypass* sur les entités **bornées par sa gare** (`Voyage, Ticket, Reservation, Courrier, Bagage, User, Role`) — **sans permission explicite**. Or l'app ne reproduisait ce bypass **que** pour `ROLE_ADMIN`/`ROLE_SUPER_ADMIN` :
+
+```dart
+bool get isAdmin => roles.contains('ROLE_ADMIN') || roles.contains('ROLE_SUPER_ADMIN'); // ROLE_ADMIN_GARE absent
+bool can(entity, action) { if (isAdmin) return true; return permissions.any(...); }
+```
+
+**Preuve** — l'admin de gare que tu as affecté (`llll@gmail.com`, id 3) : `/api/me` renvoie `roles: ["ROLE_USER","ROLE_ADMIN_GARE"]` et **`userRoles: []`** (aucune permission RBAC). Donc `can('Ticket','CREER')` → `isAdmin` faux + permissions vides → **false** → bouton masqué. Alors que `peutVendre` était bien vrai (voyage actif, car affecté, position ≠ terminus). (Le commercial « normal » noura, id 5, a une permission `Ticket/CREER` explicite → chez elle le bouton s'affichait.)
+
+## Les autres bugs (même cause) — repérés et corrigés d'un coup
+
+Le même `can()` bloquait, pour un admin de gare commercial, **tout** ce qui touche aux entités gare-scoped :
+- `voyage_detail_page` → **Vendre un billet** (le symptôme signalé) ;
+- `mes_ventes_page` → **modifier un billet**, **créer un bagage**, **modifier un bagage** ;
+- `vente_page` → **créer un bagage**.
+
+## Le correctif
+
+Dans [auth_user.dart](commercialflutter/lib/features/auth/data/models/auth_user.dart), j'ai fait **refléter le backend** par `can()` : un `ROLE_ADMIN_GARE` bypasse pour les entités bornées par sa gare (liste = miroir exact de `GareScopedEntities::ENTITIES`).
+
+```dart
+if (roles.contains('ROLE_ADMIN_GARE') && _gareScopedEntities.contains(e)) return true;
+```
+
+Un seul changement (logique métier du modèle, **pas** de code généré → pas besoin de `build_runner`) répare les 5 actions ci-dessus.
+
+## À faire pour voir l'effet
+Relance/hot-restart l'app (`flutter run`) et reconnecte-toi avec l'admin de gare : le bouton **Vendre un billet** apparaît, ainsi que les actions bagage/billet.
+
+## Points d'attention honnêtes
+- La liste des entités gare-scoped est désormais **dupliquée** (backend ↔ app). Je l'ai commentée comme « miroir exact » pour rendre la dépendance explicite : si tu modifies `GareScopedEntities::ENTITIES` côté backend, pense à mettre à jour cette liste.
+- Je n'ai **pas** touché au backend (il est correct) ni à la base. Le correctif est purement côté app.

@@ -56,12 +56,36 @@ abstract class AuthUser with _$AuthUser {
   bool get isAdmin =>
       roles.contains('ROLE_ADMIN') || roles.contains('ROLE_SUPER_ADMIN');
 
-  /// L'utilisateur peut-il agir sur [entity] via [action] ? (admin = bypass,
-  /// cf. `PermissionVoter` côté backend).
+  /// Entités BORNÉES PAR LA GARE : miroir EXACT de `GareScopedEntities::ENTITIES`
+  /// côté backend. Un `ROLE_ADMIN_GARE` y agit SANS permission explicite (ses
+  /// données sont déjà restreintes à sa gare par `GareScopeExtension`).
+  static const _gareScopedEntities = {
+    'voyage',
+    'ticket',
+    'reservation',
+    'courrier',
+    'bagage',
+    'user',
+    'role',
+  };
+
+  /// L'utilisateur peut-il agir sur [entity] via [action] ?
+  ///
+  /// Reproduit `PermissionVoter` côté backend, SINON l'UI masque des actions que
+  /// l'API autoriserait :
+  ///  - `ROLE_ADMIN` / `ROLE_SUPER_ADMIN` → bypass total ;
+  ///  - `ROLE_ADMIN_GARE` → bypass sur les entités bornées par sa gare (Ticket,
+  ///    Bagage…). C'est CE bypass qui permet à un admin de gare AFFECTÉ COMME
+  ///    COMMERCIAL de vendre et de gérer les bagages, alors qu'il n'a aucune
+  ///    permission RBAC explicite ;
+  ///  - sinon → permission explicite portée par ses rôles.
   bool can(String entity, String action) {
     if (isAdmin) return true;
     final e = entity.toLowerCase();
     final a = action.toUpperCase();
+    if (roles.contains('ROLE_ADMIN_GARE') && _gareScopedEntities.contains(e)) {
+      return true;
+    }
     return permissions.any(
       (p) => p.entity.toLowerCase() == e && p.action.toUpperCase() == a,
     );
