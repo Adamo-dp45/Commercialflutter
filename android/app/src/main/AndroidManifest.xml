@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- L'application est un client d'API : sans cette permission, AUCUNE requête ne part.
+
+         Elle n'était déclarée que dans les manifestes `debug` et `profile` — ce sont les fichiers du
+         gabarit Flutter, où l'outil la pose pour son propre usage (hot reload, points d'arrêt). Le
+         variant RELEASE, lui, ne les inclut pas : l'APK publié ne pouvait ouvrir aucune connexion, et
+         chaque appel échouait en `connectionError`, c'est-à-dire « Impossible de joindre le serveur »
+         quelle que soit l'adresse visée. Elle a donc sa place ICI, où tous les variants la voient. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="commercialflutter"
         android:name="${applicationName}"

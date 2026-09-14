@@ -12,12 +12,10 @@ authentifié** : l'app consomme l'API interne via **JWT** (LexikJWT + refresh ge
 ```bash
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # génère *.freezed.dart / *.g.dart
-flutter run --dart-define=API_BASE_URL=https://apitransport.socafpesage.com http://localhost:8000
+flutter run --dart-define=API_BASE_URL=https://proud-gauntlet-elongated.ngrok-free.dev # https://apitransport.socafpesage.com
 ```
 
-- `API_BASE_URL` : racine du backend Symfony/API Platform (sans `/api`).
-  `10.0.2.2` = l'hôte local vu depuis l'émulateur Android ; sur un appareil physique, mettez l'IP LAN
-  de la machine (ex. `http://192.168.1.20:8000`). Pas de slug : le périmètre entreprise vient du compte.
+- `API_BASE_URL` : racine du backend Symfony/API Platform (sans `/api`). `10.0.2.2` = l'hôte local vu depuis l'émulateur Android ; sur un appareil physique, mettez l'IP LAN de la machine (ex. `http://192.168.1.20:8000`). Pas de slug : le périmètre entreprise vient du compte.
 
 > Windows : la compilation d'une app à plugins natifs exige le **mode développeur**
 > (`start ms-settings:developers`) pour la prise en charge des liens symboliques.
@@ -88,9 +86,27 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
 - **Ma recette** : synthèse cumulée (recette totale, billets, bagages, panier moyen) sur mes voyages
   **actifs**, dérivée de `/api/voyages/me/commercial` — aucun appel réseau dédié. Périmètre assumé :
   un voyage clôturé sort du cumul (rappelé dans l'écran).
+- **Hors ligne** (`lib/core/offline/`) : le vendeur à bord vend, imprime, enregistre un bagage, fait
+  avancer la position du car et consulte son manifeste **sans réseau**.
+  - **Armement** : à l'ouverture d'un voyage, `GET /api/voyages/{id}/me/instantane` télécharge tout ce
+    qu'il faut pour calculer seul — arrêts ordonnés, sièges, billets en cours, grille tarifaire, grille
+    de poids des bagages, plafond de remise, en-tête de la compagnie. Sans instantané, l'application
+    **refuse** de vendre plutôt que d'improviser un prix.
+  - **Bascule** : jamais sur l'état déclaré du réseau (un téléphone accroché à une antenne sans débit
+    se dit connecté), toujours sur l'échec RÉEL de l'appel (`ApiException.estHorsLigne`).
+  - **Codes définitifs** : billet `…-TCK-2026-B3`, étiquette `…-BAG-2026-B2`. Une série « B » propre au
+    bord, sûre parce qu'un voyage n'a qu'un seul commercial. Le reçu imprimé ne changera jamais de sens.
+  - **Remontée** : `POST /api/voyages/{id}/me/sync` rejoue la file dans l'ordre d'émission. Chaque
+    opération porte une référence d'idempotence — un lot se renvoie sans crainte. Un refus ne fait pas
+    tomber le reste du lot.
+  - **Sort visible** : bandeau permanent (ce qui reste à remonter) + écran `/voyage/:id/operations`,
+    qui montre chaque opération et son sort, motif de refus compris. C'est la contrepartie assumée du
+    choix optimiste côté serveur : un billet dont le siège a été évincé doit se **voir**.
+  - **Interdit hors ligne** : désistement (remboursement — caisse de gare), modification d'un billet,
+    réservation, récompense de fidélité (deux appareils brûleraient la même).
 - **À venir** : bilan de recette **par période** (aujourd'hui / 7j / 30j) incluant les voyages
   clôturés — nécessite un endpoint perso côté backend (`/api/stats/commercial` étant réservé à
-  l'admin) ; fidélité à la vente ; vente hors-ligne (file d'attente + resync, cf. plan reporté).
+  l'admin) ; fidélité à la vente.
 
 ## Développement
 

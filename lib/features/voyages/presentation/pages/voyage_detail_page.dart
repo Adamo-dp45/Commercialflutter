@@ -7,6 +7,10 @@ import '../../../../core/network/api_exception.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/models/voyage_commercial.dart';
+import '../../../../core/offline/armement.dart';
+import '../../../../core/offline/base_locale.dart';
+import '../../../horsligne/presentation/providers/operations_providers.dart';
+import '../../../../core/widgets/bandeau_hors_ligne.dart';
 import '../providers/voyage_providers.dart';
 import '../widgets/progression_view.dart';
 
@@ -57,6 +61,13 @@ class VoyageDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final voyage = ref.watch(voyageByIdProvider(voyageId));
     final busy = ref.watch(voyageActionsProvider);
+    /*
+      ARME la vente hors ligne dès l'ouverture du départ : téléchargement de l'instantané (ligne,
+      sièges, billets, grille tarifaire, plafond de remise) pendant qu'il y a encore du réseau, et
+      vidange de ce qui attendait. On ne bloque pas l'écran dessus — c'est une préparation, pas une
+      condition d'affichage.
+    */
+    ref.watch(voyageArmeProvider(voyageId));
     // La vente exige la permission Ticket/CREER (imposée au POST) en plus des
     // conditions métier (car, position, arrêt en aval).
     final peutVendre = (voyage?.peutVendre ?? false) &&
@@ -79,7 +90,14 @@ class VoyageDetailPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(voyage.codevoyage ?? 'Voyage #${voyage.id}')),
+      appBar: AppBar(
+        title: Text(voyage.codevoyage ?? 'Voyage #${voyage.id}'),
+        // Sous le titre : ce qui reste à remonter. Le vendeur doit le voir sans le chercher.
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(0),
+          child: BandeauHorsLigne(),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -104,6 +122,10 @@ class VoyageDetailPage extends ConsumerWidget {
             icon: const Icon(Icons.people_outline),
             label: const Text('Manifeste des passagers'),
           ),
+          const SizedBox(height: 8),
+          // Toujours offert, même file vide : c'est là que le vendeur vient vérifier ce qui est
+          // passé, et le chercher ne doit pas dépendre d'un état qu'il ne contrôle pas.
+          _BoutonOperations(voyageId: voyage.id),
           const SizedBox(height: 16),
           _SectionTitle('Ma performance'),
           _PerfCard(voyage: voyage),
@@ -158,6 +180,41 @@ class VoyageDetailPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// L'accès au journal des opérations hors ligne, avec ce qui reste à remonter.
+///
+/// Le compteur porte SUR CE VOYAGE, là où le bandeau du haut compte tout : ici le vendeur regarde le
+/// départ qu'il est en train de faire, et un chiffre venu d'un autre voyage l'égarerait.
+class _BoutonOperations extends ConsumerWidget {
+  const _BoutonOperations({required this.voyageId});
+
+  final int voyageId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final operations = ref.watch(operationsDuVoyageProvider(voyageId)).asData?.value ?? const [];
+    final attente = operations.where((o) => o.statut == BaseLocale.enAttente).length;
+    final refusees = operations.where((o) => o.statut == BaseLocale.refusee).length;
+
+    // Un refus se signale en rouge : c'est de l'argent encaissé qui n'est pas entré dans le système.
+    final theme = Theme.of(context);
+    final suffixe = switch ((attente, refusees)) {
+      (0, 0) => '',
+      (final a, 0) => ' ($a en attente)',
+      (0, final r) => ' ($r refusée${r > 1 ? 's' : ''})',
+      (final a, final r) => ' ($a en attente, $r refusée${r > 1 ? 's' : ''})',
+    };
+
+    return OutlinedButton.icon(
+      onPressed: () => context.push(AppRoutes.operations(voyageId)),
+      icon: Icon(
+        refusees > 0 ? Icons.report_gmailerrorred_outlined : Icons.cloud_queue_outlined,
+        color: refusees > 0 ? theme.colorScheme.error : null,
+      ),
+      label: Text('Opérations hors ligne$suffixe'),
     );
   }
 }

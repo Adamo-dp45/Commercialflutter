@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/offline/offline_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/datasources/voyage_remote_datasource.dart';
 import '../../data/models/voyage_commercial.dart';
@@ -12,9 +13,15 @@ final _voyageRemoteProvider = Provider<VoyageRemoteDataSource>(
   (ref) => VoyageRemoteDataSource(ref.watch(dioProvider)),
 );
 
-final voyageRepositoryProvider = Provider<VoyageRepository>(
-  (ref) => VoyageRepositoryImpl(ref.watch(_voyageRemoteProvider)),
-);
+/// La copie locale est nullable : tant que la base n'est pas ouverte, la liste exige le réseau,
+/// exactement comme avant.
+final voyageRepositoryProvider = Provider<VoyageRepository>((ref) {
+  return VoyageRepositoryImpl(
+    ref.watch(_voyageRemoteProvider),
+    file: ref.watch(fileOperationsProvider),
+    synchronisateur: ref.watch(synchronisateurProvider),
+  );
+});
 
 // -- Données -- //
 

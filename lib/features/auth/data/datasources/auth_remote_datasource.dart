@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../models/auth_tokens.dart';
-import '../models/auth_user.dart';
 
 /// Accès HTTP brut à l'API d'authentification. Ne fait QUE l'appel + le mapping ;
 /// toute [DioException] est convertie en [ApiException].
@@ -25,10 +24,14 @@ class AuthRemoteDataSource {
   }
 
   /// `GET /api/me` → profil de l'utilisateur courant (Bearer ajouté par l'intercepteur).
-  Future<AuthUser> me() async {
+  ///
+  /// Rend le JSON BRUT et non l'objet : le repository en garde une copie pour rouvrir la session
+  /// sans réseau, et les permissions sont aplaties à la lecture — elles ne se re-sérialisent pas.
+  Future<Map<String, dynamic>> me() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/api/me');
-      return AuthUser.fromJson(res.data ?? const {});
+
+      return res.data ?? const {};
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

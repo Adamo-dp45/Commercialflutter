@@ -51,8 +51,14 @@ class AuthController extends Notifier<AuthState> {
     try {
       final user = await _repo.fetchProfile();
       state = state.copyWith(status: AuthStatus.authenticated, user: user);
-    } on ApiException {
-      await _store.clear();
+    } on ApiException catch (e) {
+      /*
+        UNE PANNE DE RÉSEAU N'EST PAS UNE SESSION PERDUE. Purger les jetons ici renvoyait le vendeur
+        à l'écran de connexion au premier redémarrage hors couverture — et l'y bloquait, avec ses
+        ventes encaissées prisonnières d'une file qu'il ne pouvait plus atteindre. On ne purge que
+        lorsque le SERVEUR a répondu que la session ne vaut plus rien.
+      */
+      if (!e.estHorsLigne) await _store.clear();
       state = state.copyWith(status: AuthStatus.unauthenticated, user: null);
     }
   }

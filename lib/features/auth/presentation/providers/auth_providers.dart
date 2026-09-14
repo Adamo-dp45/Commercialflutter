@@ -43,7 +43,7 @@ final _authRemoteProvider = Provider<AuthRemoteDataSource>(
 );
 
 final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => AuthRepositoryImpl(ref.watch(_authRemoteProvider)),
+  (ref) => AuthRepositoryImpl(ref.watch(_authRemoteProvider), ref.watch(tokenStoreProvider)),
 );
 
 final authControllerProvider =

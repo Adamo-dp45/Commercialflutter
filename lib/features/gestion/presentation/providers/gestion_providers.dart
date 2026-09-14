@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/models/bagage_cree.dart';
+import '../../../../core/offline/offline_providers.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../voyages/presentation/providers/voyage_providers.dart';
+import '../../data/datasources/gestion_local_datasource.dart';
 import '../../data/datasources/gestion_remote_datasource.dart';
 import '../../data/models/mes_ventes.dart';
 import '../../data/repositories/gestion_repository_impl.dart';
@@ -14,9 +16,16 @@ final _gestionRemoteProvider = Provider<GestionRemoteDataSource>(
   (ref) => GestionRemoteDataSource(ref.watch(dioProvider)),
 );
 
-final gestionRepositoryProvider = Provider<GestionRepository>(
-  (ref) => GestionRepositoryImpl(ref.watch(_gestionRemoteProvider)),
-);
+/// La source locale est nullable : tant que la base n'est pas ouverte, la page exige le réseau,
+/// exactement comme avant.
+final gestionRepositoryProvider = Provider<GestionRepository>((ref) {
+  final file = ref.watch(fileOperationsProvider);
+
+  return GestionRepositoryImpl(
+    ref.watch(_gestionRemoteProvider),
+    local: file == null ? null : GestionLocalDataSource(file),
+  );
+});
 
 // -- Données : mes ventes d'un voyage (billets + bagages) -- //
 

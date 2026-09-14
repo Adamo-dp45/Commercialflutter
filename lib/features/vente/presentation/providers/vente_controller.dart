@@ -12,6 +12,9 @@ import '../../../voyages/presentation/providers/voyage_providers.dart';
 import '../../data/datasources/vente_remote_datasource.dart';
 import '../../data/models/siege.dart';
 import '../../data/models/ticket_vendu.dart';
+import '../../../../core/offline/codes_hors_ligne.dart';
+import '../../../../core/offline/offline_providers.dart';
+import '../../data/datasources/vente_local_datasource.dart';
 import '../../data/repositories/vente_repository_impl.dart';
 import '../../domain/repositories/vente_repository.dart';
 
@@ -23,9 +26,20 @@ final _venteRemoteProvider = Provider<VenteRemoteDataSource>(
   (ref) => VenteRemoteDataSource(ref.watch(dioProvider)),
 );
 
-final venteRepositoryProvider = Provider<VenteRepository>(
-  (ref) => VenteRepositoryImpl(ref.watch(_venteRemoteProvider)),
-);
+/// Le repository sait vendre EN LIGNE et, à l'échec réseau, basculer sur l'instantané embarqué.
+/// Les trois dépendances hors ligne sont nullables : tant que la base locale n'est pas ouverte
+/// (quelques millisecondes au démarrage), l'application se comporte exactement comme avant.
+final venteRepositoryProvider = Provider<VenteRepository>((ref) {
+  final file = ref.watch(fileOperationsProvider);
+  final base = ref.watch(baseLocaleProvider).asData?.value;
+
+  return VenteRepositoryImpl(
+    ref.watch(_venteRemoteProvider),
+    local: file == null ? null : VenteLocalDataSource(file),
+    synchronisateur: ref.watch(synchronisateurProvider),
+    codes: base == null ? null : CodesHorsLigne(base),
+  );
+});
 
 // -- État du tunnel de vente -- //
 
@@ -143,7 +157,7 @@ class VenteController extends Notifier<VenteState> {
         descenteId: descente.id,
       );
       final tarifFuture =
-          _repo.tarif(monteeId: montee.id, descenteId: descente.id);
+          _repo.tarif(monteeId: montee.id, descenteId: descente.id, voyageId: v.id);
       final sieges = await siegesFuture;
       final tarif = await tarifFuture;
       state = state.copyWith(
@@ -211,18 +225,25 @@ class VenteController extends Notifier<VenteState> {
   }
 
   /// Rattache un bagage au billet vendu. Propage l'[ApiException] à l'appelant.
+  ///
+  /// On n'exige plus d'identifiant serveur : un billet vendu hors ligne n'en a pas, et le refus
+  /// aurait laissé le vendeur avec un bagage à bord et aucun moyen de l'enregistrer. Le CODE du
+  /// billet suffit — il est imprimé sur le reçu du client et le serveur sait le retrouver.
   Future<BagageCree> ajouterBagage({
     required String nature,
     required String type,
     required int poids,
     int? montant,
   }) async {
-    final ticketId = state.ticket?.id;
-    if (ticketId == null) {
+    final voyageId = state.voyage?.id;
+    final codeticket = state.ticket?.codeticket;
+    if (voyageId == null || codeticket == null) {
       throw const ApiException('Aucun billet à rattacher.');
     }
     final cree = await _repo.ajouterBagage(
-      ticketId: ticketId,
+      voyageId: voyageId,
+      codeticket: codeticket,
+      ticketId: state.ticket?.id,
       nature: nature,
       type: type,
       poids: poids,

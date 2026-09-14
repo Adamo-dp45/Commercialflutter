@@ -7,6 +7,7 @@ import '../../../../core/formatting/formatters.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/pdf/bagage_recu_pdf.dart';
 import '../../../../core/pdf/recu_pdf.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../entreprise/data/models/entreprise.dart';
 import '../../../entreprise/presentation/providers/entreprise_providers.dart';
@@ -525,6 +526,13 @@ class _RecuStep extends ConsumerWidget {
             ),
           ),
         ),
+        // Vendu sans réseau : le billet n'a pas encore d'identifiant serveur. Le code, lui, est
+        // définitif et le reçu est valable — mais le vendeur doit savoir que la remontée reste à
+        // faire, et où en suivre le sort.
+        if (state.ticket?.id == null) ...[
+          const SizedBox(height: 12),
+          const _EnAttenteDeRemontee(),
+        ],
         const SizedBox(height: 20),
         FilledButton.icon(
           onPressed: () => _partager(context, ref, state),
@@ -548,6 +556,46 @@ class _RecuStep extends ConsumerWidget {
         const SizedBox(height: 10),
         TextButton(onPressed: onLeave, child: const Text('Terminer')),
       ],
+    );
+  }
+}
+
+/// Dit que la vente est encaissée mais pas encore remontée, et où en suivre le sort.
+///
+/// Sans cette mention, le vendeur ne distingue pas une vente hors ligne d'une vente ordinaire : le
+/// reçu s'imprime pareil, le code est le même. Or l'une des deux reste à remonter — et peut être
+/// refusée.
+class _EnAttenteDeRemontee extends ConsumerWidget {
+  const _EnAttenteDeRemontee();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final voyageId = ref.watch(venteControllerProvider).voyage?.id;
+
+    return Card(
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_outlined, color: theme.colorScheme.onSecondaryContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Vendu hors ligne. Le reçu est valable, la vente remontera au retour du réseau.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSecondaryContainer),
+              ),
+            ),
+            if (voyageId != null)
+              TextButton(
+                onPressed: () => context.push(AppRoutes.operations(voyageId)),
+                child: const Text('Suivre'),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

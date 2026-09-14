@@ -7,6 +7,7 @@ import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_controller.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
 import '../../features/gestion/presentation/pages/mes_ventes_page.dart';
+import '../../features/horsligne/presentation/pages/operations_page.dart';
 import '../../features/manifeste/presentation/pages/manifeste_page.dart';
 import '../../features/recette/presentation/pages/ma_recette_page.dart';
 import '../../features/vente/presentation/pages/vente_page.dart';
@@ -26,6 +27,7 @@ class AppRoutes {
   static String vente(int id) => '/voyage/$id/vente';
   static String mesVentes(int id) => '/voyage/$id/ventes';
   static String manifeste(int id) => '/voyage/$id/manifeste';
+  static String operations(int id) => '/voyage/$id/operations';
 }
 
 /// Routeur go_router, RÉACTIF à l'état d'authentification :
@@ -100,6 +102,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'manifeste',
             builder: (context, state) => ManifestePage(
+              voyageId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+            ),
+          ),
+          GoRoute(
+            path: 'operations',
+            builder: (context, state) => OperationsPage(
               voyageId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
             ),
           ),

@@ -7,10 +7,17 @@ import 'package:dio/dio.dart';
 /// Dio. La fabrique [ApiException.fromDio] extrait le message renvoyé par le
 /// backend (API Platform) quand il existe.
 class ApiException implements Exception {
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.message, {this.statusCode, this.estHorsLigne = false});
 
   final String message;
   final int? statusCode;
+
+  /// Le serveur n'a pas répondu — coupure réseau ou délai dépassé, PAS un refus métier.
+  ///
+  /// Sans ce drapeau, la seule façon de distinguer « hors ligne » de « erreur serveur » était de
+  /// comparer des chaînes de caractères. C'est lui qui décide si une vente part en file d'attente
+  /// ou si l'on affiche une erreur au vendeur.
+  final bool estHorsLigne;
 
   bool get isUnauthorized => statusCode == 401;
   bool get isForbidden => statusCode == 403;
@@ -25,11 +32,13 @@ class ApiException implements Exception {
         e.type == DioExceptionType.sendTimeout) {
       return const ApiException(
         'Connexion trop lente. Vérifiez votre réseau et réessayez.',
+        estHorsLigne: true,
       );
     }
     if (e.type == DioExceptionType.connectionError || e.response == null) {
       return const ApiException(
         'Impossible de joindre le serveur. Vérifiez votre connexion.',
+        estHorsLigne: true,
       );
     }
 

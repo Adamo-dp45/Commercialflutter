@@ -152,6 +152,12 @@ class _BilletsTab extends ConsumerWidget {
     final peutCreer = user?.can('Ticket', 'CREER') ?? false;
     final peutBagage = user?.can('Bagage', 'CREER') ?? false;
     final oCourante = _ordre(voyage, voyage?.garecouranteId);
+    /*
+      Une correction part vers le serveur. Servie depuis l'instantané, la liste est une COPIE : offrir
+      les boutons reviendrait à promettre un geste qui échouera à coup sûr. On les retire, et on dit
+      pourquoi — un bouton grisé qui s'explique vaut mieux qu'un bouton qui échoue.
+    */
+    final horsLigne = ventes.asData?.value.horsLigne ?? false;
 
     return RefreshIndicator(
       onRefresh: () => _refreshVentes(ref, voyageId),
@@ -170,9 +176,10 @@ class _BilletsTab extends ConsumerWidget {
           }
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-            itemCount: list.length,
+            itemCount: list.length + (horsLigne ? 1 : 0),
             itemBuilder: (context, i) {
-              final t = list[i];
+              if (horsLigne && i == 0) return const _NoteHorsLigne();
+              final t = list[i - (horsLigne ? 1 : 0)];
               final oMontee = _ordre(voyage, t.monteeGareId);
               final oDescente = _ordre(voyage, t.descenteGareId);
               // Correction client : autorisée seulement tant que le car est
@@ -186,11 +193,19 @@ class _BilletsTab extends ConsumerWidget {
                   oDescente != null &&
                   oCourante > oMontee &&
                   oCourante <= oDescente;
+              /*
+                'id == 0' : billet vendu hors ligne, pas encore remonté. Il n'a aucun identifiant
+                serveur — aucune correction ne peut le viser, même réseau revenu, tant que la file
+                n'a pas été vidée.
+              */
+              final corrigeable = !horsLigne && t.id != 0;
+
               return _TicketCard(
                 ticket: t,
-                peutModifierClient: peutModif && t.estValide && aLaMontee,
-                peutDescendre: peutCreer && t.estValide && surTroncon,
-                peutAjouterBagage: peutBagage && t.estValide,
+                enAttenteDeRemontee: t.id == 0,
+                peutModifierClient: corrigeable && peutModif && t.estValide && aLaMontee,
+                peutDescendre: corrigeable && peutCreer && t.estValide && surTroncon,
+                peutAjouterBagage: corrigeable && peutBagage && t.estValide,
                 onReimprimer: () => _reimprimer(ref, t, voyage),
                 onModifier: () => _ClientDialog.show(context, ref, voyageId, t),
                 onDescendre: () => _descendre(context, ref, t, voyage),
@@ -208,6 +223,7 @@ class _BilletsTab extends ConsumerWidget {
 class _TicketCard extends StatelessWidget {
   const _TicketCard({
     required this.ticket,
+    required this.enAttenteDeRemontee,
     required this.peutModifierClient,
     required this.peutDescendre,
     required this.peutAjouterBagage,
@@ -218,6 +234,10 @@ class _TicketCard extends StatelessWidget {
   });
 
   final TicketDetail ticket;
+
+  /// Vendu hors ligne, pas encore remonté : le reçu vaut, mais le serveur l'ignore encore.
+  final bool enAttenteDeRemontee;
+
   final bool peutModifierClient;
   final bool peutDescendre;
   final bool peutAjouterBagage;
@@ -251,7 +271,10 @@ class _TicketCard extends StatelessWidget {
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700)),
                 ),
-                _StatutChip(statut: ticket.statut),
+                if (enAttenteDeRemontee)
+                  const _ChipEnAttente()
+                else
+                  _StatutChip(statut: ticket.statut),
               ],
             ),
             const SizedBox(height: 6),
@@ -359,6 +382,7 @@ class _BagagesTab extends ConsumerWidget {
     final peutModifier =
         ref.watch(authControllerProvider).user?.can('Bagage', 'MODIFIER') ??
             false;
+    final horsLigne = ventes.asData?.value.horsLigne ?? false;
 
     return RefreshIndicator(
       onRefresh: () => _refreshVentes(ref, voyageId),
@@ -377,15 +401,21 @@ class _BagagesTab extends ConsumerWidget {
           }
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-            itemCount: list.length,
-            itemBuilder: (context, i) => _BagageCard(
-              bagage: list[i],
-              peutModifier: peutModifier,
-              onReimprimer: () => _reimprimer(ref, list[i], voyage),
-              onModifier: () =>
-                  _BagageEditSheet.show(context, ref, voyageId, list[i]),
-              onAnnuler: () => _annuler(context, ref, list[i]),
-            ),
+            itemCount: list.length + (horsLigne ? 1 : 0),
+            itemBuilder: (context, i) {
+              if (horsLigne && i == 0) return const _NoteHorsLigne();
+              final bagage = list[i - (horsLigne ? 1 : 0)];
+
+              return _BagageCard(
+                bagage: bagage,
+                enAttenteDeRemontee: bagage.id == 0,
+                peutModifier: !horsLigne && bagage.id != 0 && peutModifier,
+                onReimprimer: () => _reimprimer(ref, bagage, voyage),
+                onModifier: () =>
+                    _BagageEditSheet.show(context, ref, voyageId, bagage),
+                onAnnuler: () => _annuler(context, ref, bagage),
+              );
+            },
           );
         },
       ),
@@ -396,6 +426,7 @@ class _BagagesTab extends ConsumerWidget {
 class _BagageCard extends StatelessWidget {
   const _BagageCard({
     required this.bagage,
+    required this.enAttenteDeRemontee,
     required this.peutModifier,
     required this.onReimprimer,
     required this.onModifier,
@@ -403,6 +434,9 @@ class _BagageCard extends StatelessWidget {
   });
 
   final BagageDetail bagage;
+
+  /// Enregistré hors ligne, pas encore remonté.
+  final bool enAttenteDeRemontee;
   final bool peutModifier;
   final VoidCallback onReimprimer;
   final VoidCallback onModifier;
@@ -424,7 +458,10 @@ class _BagageCard extends StatelessWidget {
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.w700)),
                 ),
-                _StatutChip(statut: bagage.statut),
+                if (enAttenteDeRemontee)
+                  const _ChipEnAttente()
+                else
+                  _StatutChip(statut: bagage.statut),
               ],
             ),
             const SizedBox(height: 6),
@@ -831,6 +868,58 @@ class _StatutChip extends StatelessWidget {
         statut,
         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
       ),
+    );
+  }
+}
+
+/// Dit que la liste vient de l'appareil, et ce que cela retire.
+///
+/// Sans elle, le vendeur constaterait la disparition des boutons de correction sans comprendre :
+/// une interface qui change en silence se lit comme une panne.
+class _NoteHorsLigne extends StatelessWidget {
+  const _NoteHorsLigne();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      color: theme.colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off_outlined, color: theme.colorScheme.onSecondaryContainer),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Hors ligne : vous pouvez réimprimer, mais pas corriger. '
+                'Les corrections redeviendront possibles au retour du réseau.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: theme.colorScheme.onSecondaryContainer),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Marque une vente encaissée à bord que le serveur ne connaît pas encore.
+class _ChipEnAttente extends StatelessWidget {
+  const _ChipEnAttente();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Chip(
+      visualDensity: VisualDensity.compact,
+      avatar: Icon(Icons.schedule_outlined, size: 16, color: theme.colorScheme.outline),
+      label: Text('En attente', style: theme.textTheme.labelSmall),
+      side: BorderSide(color: theme.colorScheme.outlineVariant),
     );
   }
 }

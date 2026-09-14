@@ -4,4 +4,13 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Le backend de développement est servi en HTTP simple (http://10.0.2.2:8000 depuis
+         l'émulateur). Android 9+ bloque le trafic en clair par défaut : sans cette ligne, tous les
+         appels échouent en `connectionError` et l'app paraît en permanence hors ligne.
+
+         Volontairement limité au variant DEBUG : la production parle en HTTPS et doit continuer de
+         refuser le clair. Même portée que la permission INTERNET ci-dessus, qui n'est elle non plus
+         déclarée que pour le développement. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
