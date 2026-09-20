@@ -17,6 +17,11 @@ _Siege _$SiegeFromJson(Map<String, dynamic> json) => _Siege(
   conflit: json['conflit'] as bool? ?? false,
   occupantNom: json['occupantNom'] as String?,
   occupantTicketId: (json['occupantTicketId'] as num?)?.toInt(),
+  venduAval: json['venduAval'] as bool? ?? false,
+  avalNom: json['avalNom'] as String?,
+  avalMontee: json['avalMontee'] as String?,
+  avalDescente: json['avalDescente'] as String?,
+  avalNombre: (json['avalNombre'] as num?)?.toInt() ?? 0,
 );
 
 Map<String, dynamic> _$SiegeToJson(_Siege instance) => <String, dynamic>{
@@ -30,4 +35,9 @@ Map<String, dynamic> _$SiegeToJson(_Siege instance) => <String, dynamic>{
   'conflit': instance.conflit,
   'occupantNom': instance.occupantNom,
   'occupantTicketId': instance.occupantTicketId,
+  'venduAval': instance.venduAval,
+  'avalNom': instance.avalNom,
+  'avalMontee': instance.avalMontee,
+  'avalDescente': instance.avalDescente,
+  'avalNombre': instance.avalNombre,
 };

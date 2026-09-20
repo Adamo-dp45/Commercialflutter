@@ -1,6 +1,4 @@
-import 'package:sqflite/sqflite.dart';
-
-import 'base_locale.dart';
+import 'file_operations.dart';
 import 'operation_hors_ligne.dart';
 
 /// Génère les codes des documents émis HORS LIGNE : billets et étiquettes de bagage.
@@ -23,21 +21,27 @@ import 'operation_hors_ligne.dart';
 /// `codebagage` est portée PAR ENTREPRISE côté serveur, donc une série « B » nue entrerait en
 /// collision entre deux commerciaux de la même compagnie roulant le même jour.
 class CodesHorsLigne {
-  const CodesHorsLigne(this._base);
+  const CodesHorsLigne(this._file);
 
-  final BaseLocale _base;
+  final FileOperations _file;
 
   /// Le prochain code de billet pour ce voyage.
-  Future<String> billet({required int voyageId, required String codevoyage}) async =>
+  Future<String> billet({required int voyageId, required String codevoyage}) =>
       _suivant(voyageId: voyageId, codevoyage: codevoyage, type: TypeOperation.VENTE, marqueur: 'TCK');
 
   /// Le prochain code de bagage pour ce voyage.
-  Future<String> bagage({required int voyageId, required String codevoyage}) async =>
+  Future<String> bagage({required int voyageId, required String codevoyage}) =>
       _suivant(voyageId: voyageId, codevoyage: codevoyage, type: TypeOperation.BAGAGE, marqueur: 'BAG');
 
-  /// Le compteur se déduit des opérations DÉJÀ EN FILE plutôt que d'être stocké à part : une seule
-  /// source, impossible à désynchroniser de la file elle-même. Il ne redémarre donc jamais à 1 tant
-  /// que les opérations du voyage sont là — y compris après un redémarrage de l'application.
+  /// Le rang suivant, pris au PLUS HAUT de deux sources.
+  ///
+  ///  * la FILE locale — les opérations de ce voyage, remontées ou non ;
+  ///  * l'INSTANTANÉ — les codes « B » que le serveur connaît déjà.
+  ///
+  /// La file seule ne suffit pas, et c'est un piège qui coûte cher : elle est la seule mémoire du
+  /// compteur, donc une réinstallation ou un effacement des données la ramène à zéro. Le téléphone
+  /// réémet alors B1 alors que le serveur détient déjà B1, B2, B3 — le code est refusé, et la vente
+  /// encaissée avec lui. L'instantané, lui, porte les billets déjà émis : il rattrape le compteur.
   ///
   /// Chaque type compte SA propre série : un bagage enregistré entre deux ventes ne doit pas décaler
   /// la numérotation des billets, sans quoi un rejeu partiel produirait deux codes identiques.
@@ -47,12 +51,31 @@ class CodesHorsLigne {
     required TypeOperation type,
     required String marqueur,
   }) async {
-    final r = await _base.db.rawQuery(
-      'SELECT COUNT(*) AS n FROM ${BaseLocale.tableOperations} WHERE voyage_id = ? AND type = ?',
-      [voyageId, type.name],
-    );
-    final rang = (Sqflite.firstIntValue(r) ?? 0) + 1;
+    final enFile = await _file.nombreOperations(voyageId, type);
+    final dejaEmis = await _plusHautRangConnu(voyageId, marqueur);
+    final rang = (enFile > dejaEmis ? enFile : dejaEmis) + 1;
 
     return '$codevoyage-$marqueur-${DateTime.now().year}-B$rang';
+  }
+
+  /// Le plus haut rang « B » que l'instantané connaisse pour ce marqueur, 0 s'il n'y en a aucun.
+  Future<int> _plusHautRangConnu(int voyageId, String marqueur) async {
+    final instantane = await _file.instantane(voyageId);
+    if (instantane == null) return 0;
+
+    final cle = marqueur == 'BAG' ? 'bagages' : 'billets';
+    final champ = marqueur == 'BAG' ? 'codebagage' : 'codeticket';
+    final motif = RegExp('-$marqueur-\\d{4}-B(\\d+)\$');
+
+    var plusHaut = 0;
+    for (final ligne in (instantane[cle] as List<dynamic>? ?? const [])) {
+      final code = (ligne as Map<String, dynamic>)[champ];
+      if (code is! String) continue;
+
+      final rang = int.tryParse(motif.firstMatch(code)?.group(1) ?? '');
+      if (rang != null && rang > plusHaut) plusHaut = rang;
+    }
+
+    return plusHaut;
   }
 }

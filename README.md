@@ -56,6 +56,12 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
 - **Vente à bord** : depuis la position du car → destination → plan de sièges → client → **remise
   facultative** (pourcentage ou montant, comme sur le web — le serveur applique le plafond de la
   compagnie) → billet (`POST /api/tickets`).
+  - **Siège déjà vendu par une gare en aval** : signalé en **ambre**, flèche descendante, détail à
+    l'appui long — et **parfaitement vendable**. La priorité amont reste la règle : le repère existe
+    pour que le vendeur qui a le choix prenne un autre siège, parce que la plupart des évictions ne
+    viennent pas d'un car plein mais d'un siège pris au hasard alors qu'un autre était libre. Un
+    rappel s'affiche aussi à la sélection : le vendeur passe à l'étape suivante dès qu'il touche un
+    siège, il ne relira pas la légende.
 - **Bagage** : lié au billet si la permission `Bagage/CREER` est accordée, avec **montant forçable**
   (vide = calcul serveur d'après la grille de poids ; renseigné = `BagageInput.montant`). Le **reçu est
   proposé dès l'enregistrement** (à la vente comme dans « Mes ventes »).
@@ -86,24 +92,62 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
 - **Ma recette** : synthèse cumulée (recette totale, billets, bagages, panier moyen) sur mes voyages
   **actifs**, dérivée de `/api/voyages/me/commercial` — aucun appel réseau dédié. Périmètre assumé :
   un voyage clôturé sort du cumul (rappelé dans l'écran).
-- **Hors ligne** (`lib/core/offline/`) : le vendeur à bord vend, imprime, enregistre un bagage, fait
-  avancer la position du car et consulte son manifeste **sans réseau**.
+- **Hors ligne** (`lib/core/offline/`) : le vendeur à bord travaille **sans réseau** — il vend,
+  imprime, enregistre un bagage, fait avancer la position du car, déclare son départ de gare,
+  consulte son manifeste et relit ses ventes pour réimprimer.
   - **Armement** : à l'ouverture d'un voyage, `GET /api/voyages/{id}/me/instantane` télécharge tout ce
-    qu'il faut pour calculer seul — arrêts ordonnés, sièges, billets en cours, grille tarifaire, grille
-    de poids des bagages, plafond de remise, en-tête de la compagnie. Sans instantané, l'application
-    **refuse** de vendre plutôt que d'improviser un prix.
+    qu'il faut pour calculer seul — arrêts ordonnés, sièges **avec leur disposition** (rangée, côté),
+    billets en cours, bagages, grille tarifaire, grille de poids, plafond de remise, en-tête de la
+    compagnie. Sans instantané, l'application **refuse** de vendre plutôt que d'improviser un prix.
   - **Bascule** : jamais sur l'état déclaré du réseau (un téléphone accroché à une antenne sans débit
     se dit connecté), toujours sur l'échec RÉEL de l'appel (`ApiException.estHorsLigne`).
   - **Codes définitifs** : billet `…-TCK-2026-B3`, étiquette `…-BAG-2026-B2`. Une série « B » propre au
-    bord, sûre parce qu'un voyage n'a qu'un seul commercial. Le reçu imprimé ne changera jamais de sens.
-  - **Remontée** : `POST /api/voyages/{id}/me/sync` rejoue la file dans l'ordre d'émission. Chaque
-    opération porte une référence d'idempotence — un lot se renvoie sans crainte. Un refus ne fait pas
-    tomber le reste du lot.
+    bord, sûre parce qu'un voyage n'a qu'un seul commercial. Le reçu imprimé ne changera jamais de
+    sens. Le compteur prend le **plus haut** de deux sources — la file locale ET les codes « B » déjà
+    présents dans l'instantané : une réinstallation ne le ramène donc pas à zéro.
+  - **Remontée AUTOMATIQUE** (`vidange_automatique.dart`) : la file repart seule, sur **quatre**
+    déclencheurs, parce qu'aucun ne suffit — ouverture de la base locale, changement de connectivité,
+    retour au premier plan, et une retentative toutes les 2 min **tant que la file n'est pas vide**.
+    Ce dernier couvre le cas le plus fréquent en brousse : l'antenne reste « connectée » sans débit,
+    puis le débit revient — aucun changement d'interface, donc aucun événement de connectivité. Le
+    bouton de synchronisation reste offert, il n'est plus nécessaire.
+  - **Idempotence** : `POST /api/voyages/{id}/me/sync` rejoue la file dans l'ordre d'émission. Chaque
+    opération porte une référence — un lot se renvoie sans crainte. Un refus ne fait pas tomber le
+    reste du lot, et une opération fautive ne bloque jamais celles qui la suivent.
+  - **Ce que le téléphone corrige localement**, faute de quoi l'écran mentirait au vendeur :
+    - la **position du car** — tout ce qu'il peut vendre ensuite s'en déduit ; le départ n'est plus
+      proposé au terminus, comme côté serveur ;
+    - **Ma performance** — recette, billets, bagages, places libres. La recette suit le **net**
+      encaissé. Les mêmes chiffres alimentent l'accueil et « Ma recette ».
+    Ces corrections sont écrasées dès le premier chargement réussi : le serveur reste la référence.
+  - **Ce qu'il rejoue à l'identique** (`regles_rejouees_test.dart` les fixe) : le prix, l'occupation
+    d'un siège (priorité amont, bornes illisibles → siège **bloqué** et non libéré), l'alerte
+    « vendu en aval », la grille de poids, la remise **et son plafond**. Une règle rejouée doit
+    refuser là où l'originale refuse — sinon le refus tombe à la synchronisation, après
+    l'encaissement.
+  - **L'alerte « vendu en aval » est rejouée, pas seulement affichée** : l'instantané porte déjà les
+    bornes de chaque billet, son `nomclient` et son `evince`, donc le téléphone la recalcule seul.
+    Elle décide de ce que le vendeur voit au moment de **choisir** — l'apprendre à la
+    synchronisation ne servirait plus à rien, le passager serait déjà évincé. !! **les deux bornes
+    comptent** (`debut > ordreMontee && debut < ordreDescente`). Sans la première, un passager qui
+    **descend** à la gare du vendeur déclenchait l'alerte alors que son siège s'y libère — le faux
+    positif livré côté serveur, et la revente la plus banale du réseau.
+  - **Mes ventes en file suivent la même règle de tronçon** que les billets du serveur. Elles étaient
+    bloquées en bloc, descente ignorée : un siège vendu Bouaké → Ferké restait occupé pour toujours
+    aux yeux du vendeur, alors que son passager y descend et que le serveur le rend libre. Aucune
+    mauvaise vente n'en découlait — seulement une place revendable perdue, hors réseau, là où l'on ne
+    peut appeler personne pour comprendre pourquoi le plan refuse.
+  - **La session survit** à un redémarrage sans réseau : profil et jetons gardés dans le coffre
+    chiffré, liste des départs en cache. Sans cela, un téléphone qui redémarre en route renvoyait le
+    vendeur à l'écran de connexion — avec ses ventes prisonnières d'une file inatteignable.
   - **Sort visible** : bandeau permanent (ce qui reste à remonter) + écran `/voyage/:id/operations`,
     qui montre chaque opération et son sort, motif de refus compris. C'est la contrepartie assumée du
     choix optimiste côté serveur : un billet dont le siège a été évincé doit se **voir**.
-  - **Interdit hors ligne** : désistement (remboursement — caisse de gare), modification d'un billet,
-    réservation, récompense de fidélité (deux appareils brûleraient la même).
+  - **Mes ventes hors ligne** : la liste et la **réimpression** fonctionnent (un passager perd son
+    reçu en route, exactement là où il n'y a pas de couverture) ; les **corrections** restent en
+    ligne, désactivées avec le motif affiché.
+  - **Interdit hors ligne** : désistement (remboursement — caisse de gare), modification d'un billet
+    ou d'un bagage, réservation, récompense de fidélité (deux appareils brûleraient la même).
 - **À venir** : bilan de recette **par période** (aujourd'hui / 7j / 30j) incluant les voyages
   clôturés — nécessite un endpoint perso côté backend (`/api/stats/commercial` étant réservé à
   l'admin) ; fidélité à la vente.
@@ -113,76 +157,22 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
 ```bash
 dart run build_runner watch --delete-conflicting-outputs   # régénération continue
 flutter analyze
+flutter test
 ```
 
 Après toute modification d'un modèle `@freezed`, relancer `build_runner`.
 
+### Deux pièges à connaître
 
+**La permission `INTERNET` est déclarée dans `android/app/src/main/AndroidManifest.xml`, et doit y
+rester.** Le gabarit Flutter ne la pose que dans les manifestes `debug` et `profile`, pour son propre
+outillage — le variant `release` ne les inclut pas. Un APK publié sans elle ne peut ouvrir **aucune**
+connexion : tous les appels échouent en `connectionError`, c'est-à-dire « Impossible de joindre le
+serveur » quelle que soit l'adresse visée. Le trafic en clair (`usesCleartextTraffic`), lui, reste
+**debug uniquement** : la production parle en HTTPS.
 
-
-## Brouillon
-
-Ça change tout — et ça confirme exactement la discordance que j'avais repérée. Un **admin de gare** (`ROLE_ADMIN_GARE`) est autorisé à vendre côté backend par un **bypass** (l'entité `Ticket` est gare-scoped), **sans** permission `Ticket/CREER` explicite. Or le `can()` de l'app ne reproduit **pas** ce bypass :
-
-```dart
-bool get isAdmin => roles.contains('ROLE_ADMIN') || roles.contains('ROLE_SUPER_ADMIN'); // ROLE_ADMIN_GARE absent !
-bool can(String entity, String action) {
-  if (isAdmin) return true;
-  return permissions.any(...); // → false pour un admin gare sans permission explicite
-}
-```
-
-→ backend autorise la vente, mais l'app **masque le bouton**. Je vérifie sur données réelles : comment `ROLE_ADMIN_GARE` est attribué, et l'admin-gare de test a-t-il (ou non) la permission explicite ?
-
-Un seul rôle RBAC existe, et l'utilisateur 3 (commercial des voyages 24/26/34) n'a **aucun** `user_role` → il est autorisé autrement. Je regarde `User::getRoles()` (dérivation de `ROLE_ADMIN_GARE`) et l'utilisateur 3 :
-
-`getRoles()` = colonne `roles` + `ROLE_USER`, et `/api/me` sérialise ça. Donc un admin de gare reçoit `roles: ["ROLE_ADMIN_GARE","ROLE_USER"]` mais **sans** permission `Ticket/CREER` (il compte sur le bypass) → `can()` = false → bouton masqué. Je confirme sur l'utilisateur 3 (l'admin de gare de test) :
-
-**Bug confirmé sur données réelles.** L'utilisateur 3 (`llll@gmail.com`, l'admin de gare affecté comme commercial) : `roles: ["ROLE_USER","ROLE_ADMIN_GARE"]`, `userRoles: []` (aucune permission explicite). Donc côté app : `isAdmin`=false (pas ROLE_ADMIN), permissions vides → `can('Ticket','CREER')`=false → **bouton masqué**. Alors que le backend l'autorise (bypass admin-gare sur `Ticket` gare-scoped).
-
-Le correctif : le `can()` de l'app doit **refléter le backend** (bypass admin-gare pour les entités gare-scoped). Je récupère la liste exacte et je regarde tous les usages de `can()`/`isAdmin` :
-
-**Cause racine confirmée et généralisée** : la liste backend est `['Voyage','Ticket','Reservation','Courrier','Bagage','User','Role']`, et TOUS les `can()` de l'app portent sur des entités gare-scoped (`Ticket`, `Bagage`). Donc pour un admin de gare commercial, **tout est cassé** (vendre, modifier billet, créer/modifier bagage) — un seul correctif règle tout : faire refléter le bypass admin-gare par `can()`.
-
-J'applique le correctif dans le modèle :
-
-Correctif appliqué. Je nettoie la commande de diagnostic jetable (banc d'essai) et je vérifie que le Dart compile :
-
-Corrigé et vérifié (`flutter analyze` : aucun problème). Banc d'essai nettoyé (commande de diagnostic supprimée, cache backend vidé).
-
-## Le bug — cause racine (prouvée sur données réelles)
-
-Ce n'était **pas** côté backend : le backend autorise bien la vente. C'était une **désynchronisation entre le `can()` de l'app et le `PermissionVoter` du backend**.
-
-Le backend accorde à un **`ROLE_ADMIN_GARE`** un *bypass* sur les entités **bornées par sa gare** (`Voyage, Ticket, Reservation, Courrier, Bagage, User, Role`) — **sans permission explicite**. Or l'app ne reproduisait ce bypass **que** pour `ROLE_ADMIN`/`ROLE_SUPER_ADMIN` :
-
-```dart
-bool get isAdmin => roles.contains('ROLE_ADMIN') || roles.contains('ROLE_SUPER_ADMIN'); // ROLE_ADMIN_GARE absent
-bool can(entity, action) { if (isAdmin) return true; return permissions.any(...); }
-```
-
-**Preuve** — l'admin de gare que tu as affecté (`llll@gmail.com`, id 3) : `/api/me` renvoie `roles: ["ROLE_USER","ROLE_ADMIN_GARE"]` et **`userRoles: []`** (aucune permission RBAC). Donc `can('Ticket','CREER')` → `isAdmin` faux + permissions vides → **false** → bouton masqué. Alors que `peutVendre` était bien vrai (voyage actif, car affecté, position ≠ terminus). (Le commercial « normal » noura, id 5, a une permission `Ticket/CREER` explicite → chez elle le bouton s'affichait.)
-
-## Les autres bugs (même cause) — repérés et corrigés d'un coup
-
-Le même `can()` bloquait, pour un admin de gare commercial, **tout** ce qui touche aux entités gare-scoped :
-- `voyage_detail_page` → **Vendre un billet** (le symptôme signalé) ;
-- `mes_ventes_page` → **modifier un billet**, **créer un bagage**, **modifier un bagage** ;
-- `vente_page` → **créer un bagage**.
-
-## Le correctif
-
-Dans [auth_user.dart](commercialflutter/lib/features/auth/data/models/auth_user.dart), j'ai fait **refléter le backend** par `can()` : un `ROLE_ADMIN_GARE` bypasse pour les entités bornées par sa gare (liste = miroir exact de `GareScopedEntities::ENTITIES`).
-
-```dart
-if (roles.contains('ROLE_ADMIN_GARE') && _gareScopedEntities.contains(e)) return true;
-```
-
-Un seul changement (logique métier du modèle, **pas** de code généré → pas besoin de `build_runner`) répare les 5 actions ci-dessus.
-
-## À faire pour voir l'effet
-Relance/hot-restart l'app (`flutter run`) et reconnecte-toi avec l'admin de gare : le bouton **Vendre un billet** apparaît, ainsi que les actions bagage/billet.
-
-## Points d'attention honnêtes
-- La liste des entités gare-scoped est désormais **dupliquée** (backend ↔ app). Je l'ai commentée comme « miroir exact » pour rendre la dépendance explicite : si tu modifies `GareScopedEntities::ENTITIES` côté backend, pense à mettre à jour cette liste.
-- Je n'ai **pas** touché au backend (il est correct) ni à la base. Le correctif est purement côté app.
+**Le `can()` de `AuthUser` est un MIROIR du `PermissionVoter` du backend.** Un `ROLE_ADMIN_GARE` y
+agit sans permission explicite sur les entités bornées par sa gare — la liste `_gareScopedEntities`
+reproduit `GareScopedEntities::ENTITIES` (`Voyage, Ticket, Reservation, Courrier, Bagage, User,
+Role`). Cette duplication est assumée et commentée : si la liste change côté backend, celle-ci doit
+suivre, sinon l'application masque des boutons que le serveur autorise.

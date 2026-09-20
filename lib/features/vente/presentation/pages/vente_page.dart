@@ -158,7 +158,27 @@ class _SiegeStep extends ConsumerWidget {
           SeatGrid(
             sieges: state.sieges,
             selectedId: state.siege?.id,
-            onTap: controller.selectSiege,
+            onTap: (siege) {
+              /*
+                AVERTISSEMENT, jamais un refus : la priorité amont est la règle et elle ne se
+                discute pas ici. Mais le vendeur passe à l'étape suivante dès qu'il touche un
+                siège — sans ce rappel, il ne saurait qu'à la synchronisation qu'il a privé un
+                passager de sa place, c'est-à-dire trop tard pour en choisir un autre.
+              */
+              if (siege.alerteAval) {
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                    duration: const Duration(seconds: 6),
+                    content: Text(
+                      'Siège ${siege.numero} déjà vendu (${siege.resumeAval}). '
+                      'Vous restez prioritaire, mais ce passager ne montera pas : '
+                      'prenez un autre siège s\'il en reste.',
+                    ),
+                  ));
+              }
+              controller.selectSiege(siege);
+            },
           ),
       ],
     );

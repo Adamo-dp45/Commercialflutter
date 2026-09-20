@@ -188,6 +188,33 @@ class FileOperations {
     return Sqflite.firstIntValue(r) ?? 0;
   }
 
+  /// Combien d'opérations de ce type ce voyage a-t-il connues — remontées ou non.
+  ///
+  /// Sert le compteur des séries « B ». On compte TOUT, pas seulement ce qui attend : un code déjà
+  /// remonté reste pris côté serveur, le réutiliser serait refusé.
+  Future<int> nombreOperations(int voyageId, TypeOperation type) async {
+    final r = await _db.rawQuery(
+      'SELECT COUNT(*) AS n FROM ${BaseLocale.tableOperations} WHERE voyage_id = ? AND type = ?',
+      [voyageId, type.name],
+    );
+
+    return Sqflite.firstIntValue(r) ?? 0;
+  }
+
+  /// Les voyages ayant encore quelque chose à remonter.
+  ///
+  /// La vidange se fait PAR VOYAGE — c'est le découpage de l'endpoint de synchronisation. Pour vider
+  /// au retour du réseau sans savoir où le vendeur se trouve dans l'application, il faut donc
+  /// d'abord savoir lesquels attendent.
+  Future<List<int>> voyagesEnAttente() async {
+    final lignes = await _db.rawQuery(
+      'SELECT DISTINCT voyage_id FROM ${BaseLocale.tableOperations} WHERE statut = ? ORDER BY voyage_id',
+      [BaseLocale.enAttente],
+    );
+
+    return [for (final l in lignes) l['voyage_id']! as int];
+  }
+
   /// L'historique d'un voyage : ce qui est passé, ce qui attend, ce qui a été refusé.
   Future<List<OperationHorsLigne>> toutes(int voyageId) async {
     final lignes = await _db.query(

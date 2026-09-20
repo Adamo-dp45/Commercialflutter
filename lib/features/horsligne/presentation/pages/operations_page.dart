@@ -7,6 +7,7 @@ import '../../../../core/offline/offline_providers.dart';
 import '../../../../core/offline/operation_hors_ligne.dart';
 import '../../../../core/widgets/app_state_views.dart';
 import '../../../../core/widgets/async_value_widget.dart';
+import '../../../voyages/presentation/providers/voyage_providers.dart';
 import '../providers/operations_providers.dart';
 
 /// Ce que le téléphone a encaissé sans réseau, et ce que le serveur en a fait.
@@ -78,6 +79,9 @@ class OperationsPage extends ConsumerWidget {
 
     ref.invalidate(operationsDuVoyageProvider(voyageId));
     ref.invalidate(operationsEnAttenteProvider);
+    // Les chiffres de « Ma performance » sont ceux du SERVEUR : après une remontée, ce sont les
+    // siens qui font foi, pas les corrections locales appliquées à l'encaissement.
+    ref.invalidate(mesVoyagesProvider);
 
     if (!context.mounted || bilan == null) return;
 

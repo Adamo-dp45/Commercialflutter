@@ -4,6 +4,7 @@ import '../../../../core/models/bagage_cree.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/offline/base_locale.dart';
 import '../../../../core/offline/codes_hors_ligne.dart';
+import '../../../../core/offline/file_operations.dart';
 import '../../../../core/offline/operation_hors_ligne.dart';
 import '../../../../core/offline/synchronisateur.dart';
 import '../../domain/repositories/vente_repository.dart';
@@ -29,14 +30,19 @@ class VenteRepositoryImpl implements VenteRepository {
     VenteLocalDataSource? local,
     Synchronisateur? synchronisateur,
     CodesHorsLigne? codes,
+    FileOperations? file,
   })  : _local = local,
         _synchronisateur = synchronisateur,
-        _codes = codes;
+        _codes = codes,
+        _file = file;
 
   final VenteRemoteDataSource _remote;
   final VenteLocalDataSource? _local;
   final Synchronisateur? _synchronisateur;
   final CodesHorsLigne? _codes;
+
+  /// Sert à corriger « Ma performance » sur le voyage en cache après un encaissement hors ligne.
+  final FileOperations? _file;
 
   static const _uuid = Uuid();
 
@@ -183,6 +189,22 @@ class VenteRepositoryImpl implements VenteRepository {
       statut: BaseLocale.enAttente,
       creeLe: DateTime.now(),
     ));
+
+    /*
+      MA PERFORMANCE est corrigée ici, pour la même raison que la position du car : elle vient du
+      serveur, et le serveur ignore encore cette vente. Sans cette écriture, le vendeur encaisse
+      trois billets et voit sa recette immobile — un compteur qui ment sur son propre travail, et le
+      seul retour chiffré qu'il ait de sa journée.
+
+      Correction locale, donc, que le prochain chargement réussi écrasera : le serveur reste la
+      référence dès qu'il est joignable.
+    */
+    await _file?.modifierVoyageEnCache(voyageId, (voyage) => {
+          ...voyage,
+          'maRecette': ((voyage['maRecette'] as num?)?.toInt() ?? 0) + (tarif - remise),
+          'mesTickets': ((voyage['mesTickets'] as num?)?.toInt() ?? 0) + 1,
+          'placesoccupees': ((voyage['placesoccupees'] as num?)?.toInt() ?? 0) + 1,
+        });
 
     // Pas d'identifiant serveur : il n'existera qu'à la synchronisation. Le reçu, lui, n'en a pas
     // besoin — il porte le code, et c'est le code qui fait foi au contrôle.
@@ -356,6 +378,13 @@ class VenteRepositoryImpl implements VenteRepository {
       statut: BaseLocale.enAttente,
       creeLe: DateTime.now(),
     ));
+
+    // La recette d'un bagage enregistré à bord revient au commercial, comme celle d'un billet.
+    await _file?.modifierVoyageEnCache(voyageId, (voyage) => {
+          ...voyage,
+          'maRecette': ((voyage['maRecette'] as num?)?.toInt() ?? 0) + facture,
+          'mesBagages': ((voyage['mesBagages'] as num?)?.toInt() ?? 0) + 1,
+        });
 
     return (codebagage: code, montant: facture, montantForce: force);
   }

@@ -94,6 +94,26 @@ class Synchronisateur {
     return BilanSynchronisation(acceptes: acceptes, dejaSynchronises: deja, refuses: refuses);
   }
 
+  /// Vide la file de TOUS les voyages qui attendent.
+  ///
+  /// C'est ce que réclame le retour du réseau : à cet instant, on ne sait pas où le vendeur se
+  /// trouve dans l'application, ni quels départs ont des opérations en souffrance. On les traite
+  /// tous, dans l'ordre des voyages.
+  ///
+  /// Rend le nombre d'opérations effectivement remontées — zéro si le serveur est toujours
+  /// injoignable, ce qui arrive : une interface réseau qui réapparaît ne garantit pas un serveur
+  /// joignable. L'échec est sans conséquence, la file reste intacte.
+  Future<int> viderTout() async {
+    var remontees = 0;
+
+    for (final voyageId in await _file.voyagesEnAttente()) {
+      final bilan = await vider(voyageId);
+      remontees += bilan.total;
+    }
+
+    return remontees;
+  }
+
   /// Met une opération en file et tente de la faire partir tout de suite.
   ///
   /// L'ordre est volontaire : on écrit D'ABORD, on envoie ensuite. Une vente encaissée doit survivre

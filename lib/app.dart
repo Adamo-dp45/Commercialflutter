@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/offline/vidange_automatique.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
@@ -13,6 +14,9 @@ class CommercialApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    // Monté à la racine, et seulement là : la file doit repartir au retour du réseau quel que soit
+    // l'écran affiché — y compris si le vendeur est resté sur son tunnel de vente.
+    ref.watch(vidangeAutomatiqueProvider);
 
     return MaterialApp.router(
       title: 'Espace commercial',

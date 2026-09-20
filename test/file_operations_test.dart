@@ -123,7 +123,7 @@ void main() {
   });
 
   test('le code de billet suit une série propre au bord, sans repartir à zéro', () async {
-    final codes = CodesHorsLigne(base);
+    final codes = CodesHorsLigne(file);
 
     expect(await codes.billet(voyageId: 7, codevoyage: 'LI-V1'), endsWith('-B1'));
 
@@ -139,7 +139,7 @@ void main() {
   });
 
   test('billets et bagages comptent chacun leur propre série', () async {
-    final codes = CodesHorsLigne(base);
+    final codes = CodesHorsLigne(file);
 
     await file.mettreEnFile(vente('ref-1'));
     await file.mettreEnFile(bagage('ref-2'));
@@ -148,6 +148,49 @@ void main() {
     // Deux ventes en file → le prochain billet est le 3e ; le bagage intercalé n'a rien décalé.
     expect(await codes.billet(voyageId: 7, codevoyage: 'LI-V1'), endsWith('-TCK-2026-B3'));
     expect(await codes.bagage(voyageId: 7, codevoyage: 'LI-V1'), endsWith('-BAG-2026-B2'));
+  });
+
+  test('le compteur de série ne repart pas à zéro après une perte du stockage', () async {
+    /*
+      LE PIÈGE : la file était la SEULE mémoire du compteur. Une réinstallation, un « effacer les
+      données », et le téléphone réémettait B1 alors que le serveur détenait déjà B1, B2, B3. Le code
+      était refusé — et la vente encaissée avec lui.
+
+      L'instantané, lui, porte les billets déjà émis. Il rattrape le compteur.
+    */
+    await file.enregistrerInstantane(7, {
+      'billets': [
+        {'codeticket': 'LI-V1-TCK-2026-B1'},
+        {'codeticket': 'LI-V1-TCK-2026-B3'},
+        {'codeticket': 'LI-V1-TCK-2026-7'},
+      ],
+      'bagages': [
+        {'codebagage': 'LI-V1-BAG-2026-B2'},
+      ],
+    });
+
+    final codes = CodesHorsLigne(file);
+
+    expect(
+      await codes.billet(voyageId: 7, codevoyage: 'LI-V1'),
+      endsWith('-TCK-2026-B4'),
+      reason: 'B3 est le plus haut déjà émis, file vide ou non',
+    );
+    expect(await codes.bagage(voyageId: 7, codevoyage: 'LI-V1'), endsWith('-BAG-2026-B3'));
+  });
+
+  test('la file reprend la main quand elle est plus avancée que l\'instantané', () async {
+    // L'instantané date de l'armement ; les ventes faites depuis sont dans la file seule.
+    await file.enregistrerInstantane(7, {
+      'billets': [
+        {'codeticket': 'LI-V1-TCK-2026-B1'},
+      ],
+    });
+    await file.mettreEnFile(vente('a'));
+    await file.mettreEnFile(vente('b', siege: 2));
+    await file.mettreEnFile(vente('c', siege: 3));
+
+    expect(await CodesHorsLigne(file).billet(voyageId: 7, codevoyage: 'LI-V1'), endsWith('-B4'));
   });
 
   test('la file signale ses écritures', () async {
@@ -167,6 +210,24 @@ void main() {
     expect(signaux, hasLength(2), reason: 'une mise en file, puis un sort rendu');
 
     await abonnement.cancel();
+  });
+
+  test('les voyages en attente se listent, pour vider au retour du réseau', () async {
+    /*
+      La vidange se fait PAR VOYAGE — c'est le découpage de l'endpoint. Au retour du réseau on ne
+      sait pas où le vendeur se trouve dans l'application : il faut donc pouvoir demander « lesquels
+      attendent ? » sans rien présumer.
+    */
+    await file.mettreEnFile(vente('a'));
+    await file.mettreEnFile(vente('b', siege: 2));
+    await file.mettreEnFile(vente('c', voyageId: 9));
+    await file.marquer('c', statut: BaseLocale.synchronisee);
+
+    expect(
+      await file.voyagesEnAttente(),
+      [7],
+      reason: 'le voyage 9 n\'a plus rien à envoyer : il ne doit pas être resollicité',
+    );
   });
 
   test('le voyage en cache se corrige localement quand le car avance', () async {

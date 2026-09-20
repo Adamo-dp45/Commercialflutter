@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Siege {
 
- int get id; int get numero; int get rangee; int get colonne; String get cote; String get statut; bool get revendu; bool get conflit; String? get occupantNom; int? get occupantTicketId;
+ int get id; int get numero; int get rangee; int get colonne; String get cote; String get statut; bool get revendu; bool get conflit; String? get occupantNom; int? get occupantTicketId; bool get venduAval; String? get avalNom; String? get avalMontee; String? get avalDescente; int get avalNombre;
 /// Create a copy of Siege
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SiegeCopyWith<Siege> get copyWith => _$SiegeCopyWithImpl<Siege>(this as Siege, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Siege&&(identical(other.id, id) || other.id == id)&&(identical(other.numero, numero) || other.numero == numero)&&(identical(other.rangee, rangee) || other.rangee == rangee)&&(identical(other.colonne, colonne) || other.colonne == colonne)&&(identical(other.cote, cote) || other.cote == cote)&&(identical(other.statut, statut) || other.statut == statut)&&(identical(other.revendu, revendu) || other.revendu == revendu)&&(identical(other.conflit, conflit) || other.conflit == conflit)&&(identical(other.occupantNom, occupantNom) || other.occupantNom == occupantNom)&&(identical(other.occupantTicketId, occupantTicketId) || other.occupantTicketId == occupantTicketId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Siege&&(identical(other.id, id) || other.id == id)&&(identical(other.numero, numero) || other.numero == numero)&&(identical(other.rangee, rangee) || other.rangee == rangee)&&(identical(other.colonne, colonne) || other.colonne == colonne)&&(identical(other.cote, cote) || other.cote == cote)&&(identical(other.statut, statut) || other.statut == statut)&&(identical(other.revendu, revendu) || other.revendu == revendu)&&(identical(other.conflit, conflit) || other.conflit == conflit)&&(identical(other.occupantNom, occupantNom) || other.occupantNom == occupantNom)&&(identical(other.occupantTicketId, occupantTicketId) || other.occupantTicketId == occupantTicketId)&&(identical(other.venduAval, venduAval) || other.venduAval == venduAval)&&(identical(other.avalNom, avalNom) || other.avalNom == avalNom)&&(identical(other.avalMontee, avalMontee) || other.avalMontee == avalMontee)&&(identical(other.avalDescente, avalDescente) || other.avalDescente == avalDescente)&&(identical(other.avalNombre, avalNombre) || other.avalNombre == avalNombre));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,numero,rangee,colonne,cote,statut,revendu,conflit,occupantNom,occupantTicketId);
+int get hashCode => Object.hash(runtimeType,id,numero,rangee,colonne,cote,statut,revendu,conflit,occupantNom,occupantTicketId,venduAval,avalNom,avalMontee,avalDescente,avalNombre);
 
 @override
 String toString() {
-  return 'Siege(id: $id, numero: $numero, rangee: $rangee, colonne: $colonne, cote: $cote, statut: $statut, revendu: $revendu, conflit: $conflit, occupantNom: $occupantNom, occupantTicketId: $occupantTicketId)';
+  return 'Siege(id: $id, numero: $numero, rangee: $rangee, colonne: $colonne, cote: $cote, statut: $statut, revendu: $revendu, conflit: $conflit, occupantNom: $occupantNom, occupantTicketId: $occupantTicketId, venduAval: $venduAval, avalNom: $avalNom, avalMontee: $avalMontee, avalDescente: $avalDescente, avalNombre: $avalNombre)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SiegeCopyWith<$Res>  {
   factory $SiegeCopyWith(Siege value, $Res Function(Siege) _then) = _$SiegeCopyWithImpl;
 @useResult
 $Res call({
- int id, int numero, int rangee, int colonne, String cote, String statut, bool revendu, bool conflit, String? occupantNom, int? occupantTicketId
+ int id, int numero, int rangee, int colonne, String cote, String statut, bool revendu, bool conflit, String? occupantNom, int? occupantTicketId, bool venduAval, String? avalNom, String? avalMontee, String? avalDescente, int avalNombre
 });
 
 
@@ -65,7 +65,7 @@ class _$SiegeCopyWithImpl<$Res>
 
 /// Create a copy of Siege
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? numero = null,Object? rangee = null,Object? colonne = null,Object? cote = null,Object? statut = null,Object? revendu = null,Object? conflit = null,Object? occupantNom = freezed,Object? occupantTicketId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? numero = null,Object? rangee = null,Object? colonne = null,Object? cote = null,Object? statut = null,Object? revendu = null,Object? conflit = null,Object? occupantNom = freezed,Object? occupantTicketId = freezed,Object? venduAval = null,Object? avalNom = freezed,Object? avalMontee = freezed,Object? avalDescente = freezed,Object? avalNombre = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,numero: null == numero ? _self.numero : numero // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,12 @@ as String,revendu: null == revendu ? _self.revendu : revendu // ignore: cast_nul
 as bool,conflit: null == conflit ? _self.conflit : conflit // ignore: cast_nullable_to_non_nullable
 as bool,occupantNom: freezed == occupantNom ? _self.occupantNom : occupantNom // ignore: cast_nullable_to_non_nullable
 as String?,occupantTicketId: freezed == occupantTicketId ? _self.occupantTicketId : occupantTicketId // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,venduAval: null == venduAval ? _self.venduAval : venduAval // ignore: cast_nullable_to_non_nullable
+as bool,avalNom: freezed == avalNom ? _self.avalNom : avalNom // ignore: cast_nullable_to_non_nullable
+as String?,avalMontee: freezed == avalMontee ? _self.avalMontee : avalMontee // ignore: cast_nullable_to_non_nullable
+as String?,avalDescente: freezed == avalDescente ? _self.avalDescente : avalDescente // ignore: cast_nullable_to_non_nullable
+as String?,avalNombre: null == avalNombre ? _self.avalNombre : avalNombre // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -162,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int numero,  int rangee,  int colonne,  String cote,  String statut,  bool revendu,  bool conflit,  String? occupantNom,  int? occupantTicketId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  int numero,  int rangee,  int colonne,  String cote,  String statut,  bool revendu,  bool conflit,  String? occupantNom,  int? occupantTicketId,  bool venduAval,  String? avalNom,  String? avalMontee,  String? avalDescente,  int avalNombre)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Siege() when $default != null:
-return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_that.statut,_that.revendu,_that.conflit,_that.occupantNom,_that.occupantTicketId);case _:
+return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_that.statut,_that.revendu,_that.conflit,_that.occupantNom,_that.occupantTicketId,_that.venduAval,_that.avalNom,_that.avalMontee,_that.avalDescente,_that.avalNombre);case _:
   return orElse();
 
 }
@@ -183,10 +188,10 @@ return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int numero,  int rangee,  int colonne,  String cote,  String statut,  bool revendu,  bool conflit,  String? occupantNom,  int? occupantTicketId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  int numero,  int rangee,  int colonne,  String cote,  String statut,  bool revendu,  bool conflit,  String? occupantNom,  int? occupantTicketId,  bool venduAval,  String? avalNom,  String? avalMontee,  String? avalDescente,  int avalNombre)  $default,) {final _that = this;
 switch (_that) {
 case _Siege():
-return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_that.statut,_that.revendu,_that.conflit,_that.occupantNom,_that.occupantTicketId);case _:
+return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_that.statut,_that.revendu,_that.conflit,_that.occupantNom,_that.occupantTicketId,_that.venduAval,_that.avalNom,_that.avalMontee,_that.avalDescente,_that.avalNombre);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +208,10 @@ return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int numero,  int rangee,  int colonne,  String cote,  String statut,  bool revendu,  bool conflit,  String? occupantNom,  int? occupantTicketId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  int numero,  int rangee,  int colonne,  String cote,  String statut,  bool revendu,  bool conflit,  String? occupantNom,  int? occupantTicketId,  bool venduAval,  String? avalNom,  String? avalMontee,  String? avalDescente,  int avalNombre)?  $default,) {final _that = this;
 switch (_that) {
 case _Siege() when $default != null:
-return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_that.statut,_that.revendu,_that.conflit,_that.occupantNom,_that.occupantTicketId);case _:
+return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_that.statut,_that.revendu,_that.conflit,_that.occupantNom,_that.occupantTicketId,_that.venduAval,_that.avalNom,_that.avalMontee,_that.avalDescente,_that.avalNombre);case _:
   return null;
 
 }
@@ -218,7 +223,7 @@ return $default(_that.id,_that.numero,_that.rangee,_that.colonne,_that.cote,_tha
 @JsonSerializable()
 
 class _Siege extends Siege {
-  const _Siege({required this.id, required this.numero, this.rangee = 0, this.colonne = 0, this.cote = 'GAUCHE', this.statut = 'LIBRE', this.revendu = false, this.conflit = false, this.occupantNom, this.occupantTicketId}): super._();
+  const _Siege({required this.id, required this.numero, this.rangee = 0, this.colonne = 0, this.cote = 'GAUCHE', this.statut = 'LIBRE', this.revendu = false, this.conflit = false, this.occupantNom, this.occupantTicketId, this.venduAval = false, this.avalNom, this.avalMontee, this.avalDescente, this.avalNombre = 0}): super._();
   factory _Siege.fromJson(Map<String, dynamic> json) => _$SiegeFromJson(json);
 
 @override final  int id;
@@ -231,6 +236,11 @@ class _Siege extends Siege {
 @override@JsonKey() final  bool conflit;
 @override final  String? occupantNom;
 @override final  int? occupantTicketId;
+@override@JsonKey() final  bool venduAval;
+@override final  String? avalNom;
+@override final  String? avalMontee;
+@override final  String? avalDescente;
+@override@JsonKey() final  int avalNombre;
 
 /// Create a copy of Siege
 /// with the given fields replaced by the non-null parameter values.
@@ -245,16 +255,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Siege&&(identical(other.id, id) || other.id == id)&&(identical(other.numero, numero) || other.numero == numero)&&(identical(other.rangee, rangee) || other.rangee == rangee)&&(identical(other.colonne, colonne) || other.colonne == colonne)&&(identical(other.cote, cote) || other.cote == cote)&&(identical(other.statut, statut) || other.statut == statut)&&(identical(other.revendu, revendu) || other.revendu == revendu)&&(identical(other.conflit, conflit) || other.conflit == conflit)&&(identical(other.occupantNom, occupantNom) || other.occupantNom == occupantNom)&&(identical(other.occupantTicketId, occupantTicketId) || other.occupantTicketId == occupantTicketId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Siege&&(identical(other.id, id) || other.id == id)&&(identical(other.numero, numero) || other.numero == numero)&&(identical(other.rangee, rangee) || other.rangee == rangee)&&(identical(other.colonne, colonne) || other.colonne == colonne)&&(identical(other.cote, cote) || other.cote == cote)&&(identical(other.statut, statut) || other.statut == statut)&&(identical(other.revendu, revendu) || other.revendu == revendu)&&(identical(other.conflit, conflit) || other.conflit == conflit)&&(identical(other.occupantNom, occupantNom) || other.occupantNom == occupantNom)&&(identical(other.occupantTicketId, occupantTicketId) || other.occupantTicketId == occupantTicketId)&&(identical(other.venduAval, venduAval) || other.venduAval == venduAval)&&(identical(other.avalNom, avalNom) || other.avalNom == avalNom)&&(identical(other.avalMontee, avalMontee) || other.avalMontee == avalMontee)&&(identical(other.avalDescente, avalDescente) || other.avalDescente == avalDescente)&&(identical(other.avalNombre, avalNombre) || other.avalNombre == avalNombre));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,numero,rangee,colonne,cote,statut,revendu,conflit,occupantNom,occupantTicketId);
+int get hashCode => Object.hash(runtimeType,id,numero,rangee,colonne,cote,statut,revendu,conflit,occupantNom,occupantTicketId,venduAval,avalNom,avalMontee,avalDescente,avalNombre);
 
 @override
 String toString() {
-  return 'Siege(id: $id, numero: $numero, rangee: $rangee, colonne: $colonne, cote: $cote, statut: $statut, revendu: $revendu, conflit: $conflit, occupantNom: $occupantNom, occupantTicketId: $occupantTicketId)';
+  return 'Siege(id: $id, numero: $numero, rangee: $rangee, colonne: $colonne, cote: $cote, statut: $statut, revendu: $revendu, conflit: $conflit, occupantNom: $occupantNom, occupantTicketId: $occupantTicketId, venduAval: $venduAval, avalNom: $avalNom, avalMontee: $avalMontee, avalDescente: $avalDescente, avalNombre: $avalNombre)';
 }
 
 
@@ -265,7 +275,7 @@ abstract mixin class _$SiegeCopyWith<$Res> implements $SiegeCopyWith<$Res> {
   factory _$SiegeCopyWith(_Siege value, $Res Function(_Siege) _then) = __$SiegeCopyWithImpl;
 @override @useResult
 $Res call({
- int id, int numero, int rangee, int colonne, String cote, String statut, bool revendu, bool conflit, String? occupantNom, int? occupantTicketId
+ int id, int numero, int rangee, int colonne, String cote, String statut, bool revendu, bool conflit, String? occupantNom, int? occupantTicketId, bool venduAval, String? avalNom, String? avalMontee, String? avalDescente, int avalNombre
 });
 
 
@@ -282,7 +292,7 @@ class __$SiegeCopyWithImpl<$Res>
 
 /// Create a copy of Siege
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? numero = null,Object? rangee = null,Object? colonne = null,Object? cote = null,Object? statut = null,Object? revendu = null,Object? conflit = null,Object? occupantNom = freezed,Object? occupantTicketId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? numero = null,Object? rangee = null,Object? colonne = null,Object? cote = null,Object? statut = null,Object? revendu = null,Object? conflit = null,Object? occupantNom = freezed,Object? occupantTicketId = freezed,Object? venduAval = null,Object? avalNom = freezed,Object? avalMontee = freezed,Object? avalDescente = freezed,Object? avalNombre = null,}) {
   return _then(_Siege(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,numero: null == numero ? _self.numero : numero // ignore: cast_nullable_to_non_nullable
@@ -294,7 +304,12 @@ as String,revendu: null == revendu ? _self.revendu : revendu // ignore: cast_nul
 as bool,conflit: null == conflit ? _self.conflit : conflit // ignore: cast_nullable_to_non_nullable
 as bool,occupantNom: freezed == occupantNom ? _self.occupantNom : occupantNom // ignore: cast_nullable_to_non_nullable
 as String?,occupantTicketId: freezed == occupantTicketId ? _self.occupantTicketId : occupantTicketId // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,venduAval: null == venduAval ? _self.venduAval : venduAval // ignore: cast_nullable_to_non_nullable
+as bool,avalNom: freezed == avalNom ? _self.avalNom : avalNom // ignore: cast_nullable_to_non_nullable
+as String?,avalMontee: freezed == avalMontee ? _self.avalMontee : avalMontee // ignore: cast_nullable_to_non_nullable
+as String?,avalDescente: freezed == avalDescente ? _self.avalDescente : avalDescente // ignore: cast_nullable_to_non_nullable
+as String?,avalNombre: null == avalNombre ? _self.avalNombre : avalNombre // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

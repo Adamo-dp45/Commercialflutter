@@ -31,13 +31,13 @@ final _venteRemoteProvider = Provider<VenteRemoteDataSource>(
 /// (quelques millisecondes au démarrage), l'application se comporte exactement comme avant.
 final venteRepositoryProvider = Provider<VenteRepository>((ref) {
   final file = ref.watch(fileOperationsProvider);
-  final base = ref.watch(baseLocaleProvider).asData?.value;
 
   return VenteRepositoryImpl(
     ref.watch(_venteRemoteProvider),
     local: file == null ? null : VenteLocalDataSource(file),
     synchronisateur: ref.watch(synchronisateurProvider),
-    codes: base == null ? null : CodesHorsLigne(base),
+    codes: file == null ? null : CodesHorsLigne(file),
+    file: file,
   );
 });
 
