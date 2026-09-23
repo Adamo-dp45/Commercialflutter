@@ -17,6 +17,9 @@ abstract class VoyageCommercial with _$VoyageCommercial {
   const factory VoyageCommercial({
     required int id,
     String? codevoyage,
+    /// Numéro de départ DU JOUR (« DEPART 4 » sur le reçu) : le repère que le
+    /// passager entend au quai. Attribué par le serveur, jamais calculé ici.
+    int? numerodepart,
     String? provenance,
     String? destination,
     DateTime? datedepartprevue,
@@ -40,6 +43,16 @@ abstract class VoyageCommercial with _$VoyageCommercial {
       _$VoyageCommercialFromJson(json);
 
   String get trajet => '${provenance ?? '?'} → ${destination ?? '?'}';
+
+  /// Comment on NOMME ce départ à l'écran : « Départ 2 · LI-ABI-KOR-0001-V3 ».
+  ///
+  /// Le numéro d'abord, parce que c'est celui que le vendeur entend et annonce ; le code ensuite,
+  /// pour retrouver le voyage côté exploitation. Un cache d'avant cette version n'a pas le numéro —
+  /// on retombe alors sur le code seul plutôt que d'afficher « Départ null ».
+  String get libelleDepart {
+    final code = codevoyage ?? 'Voyage #$id';
+    return numerodepart == null ? code : 'Départ $numerodepart · $code';
+  }
 
   int get placesLibres =>
       (placestotal - placesoccupees).clamp(0, placestotal);

@@ -15,7 +15,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$VoyageCommercial {
 
- int get id; String? get codevoyage; String? get provenance; String? get destination; DateTime? get datedepartprevue; bool get demarre; int get placestotal; int get placesoccupees; int? get garecouranteId; String? get garecouranteLibelle; int? get carId; String? get carMatricule; bool get peutRepartir; List<Arret> get arrets; int get maRecette; int get mesTickets; int get mesBagages;
+ int get id; String? get codevoyage;/// Numéro de départ DU JOUR (« DEPART 4 » sur le reçu) : le repère que le
+/// passager entend au quai. Attribué par le serveur, jamais calculé ici.
+ int? get numerodepart; String? get provenance; String? get destination; DateTime? get datedepartprevue; bool get demarre; int get placestotal; int get placesoccupees; int? get garecouranteId; String? get garecouranteLibelle; int? get carId; String? get carMatricule; bool get peutRepartir; List<Arret> get arrets; int get maRecette; int get mesTickets; int get mesBagages;
 /// Create a copy of VoyageCommercial
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +30,16 @@ $VoyageCommercialCopyWith<VoyageCommercial> get copyWith => _$VoyageCommercialCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VoyageCommercial&&(identical(other.id, id) || other.id == id)&&(identical(other.codevoyage, codevoyage) || other.codevoyage == codevoyage)&&(identical(other.provenance, provenance) || other.provenance == provenance)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.datedepartprevue, datedepartprevue) || other.datedepartprevue == datedepartprevue)&&(identical(other.demarre, demarre) || other.demarre == demarre)&&(identical(other.placestotal, placestotal) || other.placestotal == placestotal)&&(identical(other.placesoccupees, placesoccupees) || other.placesoccupees == placesoccupees)&&(identical(other.garecouranteId, garecouranteId) || other.garecouranteId == garecouranteId)&&(identical(other.garecouranteLibelle, garecouranteLibelle) || other.garecouranteLibelle == garecouranteLibelle)&&(identical(other.carId, carId) || other.carId == carId)&&(identical(other.carMatricule, carMatricule) || other.carMatricule == carMatricule)&&(identical(other.peutRepartir, peutRepartir) || other.peutRepartir == peutRepartir)&&const DeepCollectionEquality().equals(other.arrets, arrets)&&(identical(other.maRecette, maRecette) || other.maRecette == maRecette)&&(identical(other.mesTickets, mesTickets) || other.mesTickets == mesTickets)&&(identical(other.mesBagages, mesBagages) || other.mesBagages == mesBagages));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VoyageCommercial&&(identical(other.id, id) || other.id == id)&&(identical(other.codevoyage, codevoyage) || other.codevoyage == codevoyage)&&(identical(other.numerodepart, numerodepart) || other.numerodepart == numerodepart)&&(identical(other.provenance, provenance) || other.provenance == provenance)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.datedepartprevue, datedepartprevue) || other.datedepartprevue == datedepartprevue)&&(identical(other.demarre, demarre) || other.demarre == demarre)&&(identical(other.placestotal, placestotal) || other.placestotal == placestotal)&&(identical(other.placesoccupees, placesoccupees) || other.placesoccupees == placesoccupees)&&(identical(other.garecouranteId, garecouranteId) || other.garecouranteId == garecouranteId)&&(identical(other.garecouranteLibelle, garecouranteLibelle) || other.garecouranteLibelle == garecouranteLibelle)&&(identical(other.carId, carId) || other.carId == carId)&&(identical(other.carMatricule, carMatricule) || other.carMatricule == carMatricule)&&(identical(other.peutRepartir, peutRepartir) || other.peutRepartir == peutRepartir)&&const DeepCollectionEquality().equals(other.arrets, arrets)&&(identical(other.maRecette, maRecette) || other.maRecette == maRecette)&&(identical(other.mesTickets, mesTickets) || other.mesTickets == mesTickets)&&(identical(other.mesBagages, mesBagages) || other.mesBagages == mesBagages));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,codevoyage,provenance,destination,datedepartprevue,demarre,placestotal,placesoccupees,garecouranteId,garecouranteLibelle,carId,carMatricule,peutRepartir,const DeepCollectionEquality().hash(arrets),maRecette,mesTickets,mesBagages);
+int get hashCode => Object.hash(runtimeType,id,codevoyage,numerodepart,provenance,destination,datedepartprevue,demarre,placestotal,placesoccupees,garecouranteId,garecouranteLibelle,carId,carMatricule,peutRepartir,const DeepCollectionEquality().hash(arrets),maRecette,mesTickets,mesBagages);
 
 @override
 String toString() {
-  return 'VoyageCommercial(id: $id, codevoyage: $codevoyage, provenance: $provenance, destination: $destination, datedepartprevue: $datedepartprevue, demarre: $demarre, placestotal: $placestotal, placesoccupees: $placesoccupees, garecouranteId: $garecouranteId, garecouranteLibelle: $garecouranteLibelle, carId: $carId, carMatricule: $carMatricule, peutRepartir: $peutRepartir, arrets: $arrets, maRecette: $maRecette, mesTickets: $mesTickets, mesBagages: $mesBagages)';
+  return 'VoyageCommercial(id: $id, codevoyage: $codevoyage, numerodepart: $numerodepart, provenance: $provenance, destination: $destination, datedepartprevue: $datedepartprevue, demarre: $demarre, placestotal: $placestotal, placesoccupees: $placesoccupees, garecouranteId: $garecouranteId, garecouranteLibelle: $garecouranteLibelle, carId: $carId, carMatricule: $carMatricule, peutRepartir: $peutRepartir, arrets: $arrets, maRecette: $maRecette, mesTickets: $mesTickets, mesBagages: $mesBagages)';
 }
 
 
@@ -48,7 +50,7 @@ abstract mixin class $VoyageCommercialCopyWith<$Res>  {
   factory $VoyageCommercialCopyWith(VoyageCommercial value, $Res Function(VoyageCommercial) _then) = _$VoyageCommercialCopyWithImpl;
 @useResult
 $Res call({
- int id, String? codevoyage, String? provenance, String? destination, DateTime? datedepartprevue, bool demarre, int placestotal, int placesoccupees, int? garecouranteId, String? garecouranteLibelle, int? carId, String? carMatricule, bool peutRepartir, List<Arret> arrets, int maRecette, int mesTickets, int mesBagages
+ int id, String? codevoyage, int? numerodepart, String? provenance, String? destination, DateTime? datedepartprevue, bool demarre, int placestotal, int placesoccupees, int? garecouranteId, String? garecouranteLibelle, int? carId, String? carMatricule, bool peutRepartir, List<Arret> arrets, int maRecette, int mesTickets, int mesBagages
 });
 
 
@@ -65,11 +67,12 @@ class _$VoyageCommercialCopyWithImpl<$Res>
 
 /// Create a copy of VoyageCommercial
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? codevoyage = freezed,Object? provenance = freezed,Object? destination = freezed,Object? datedepartprevue = freezed,Object? demarre = null,Object? placestotal = null,Object? placesoccupees = null,Object? garecouranteId = freezed,Object? garecouranteLibelle = freezed,Object? carId = freezed,Object? carMatricule = freezed,Object? peutRepartir = null,Object? arrets = null,Object? maRecette = null,Object? mesTickets = null,Object? mesBagages = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? codevoyage = freezed,Object? numerodepart = freezed,Object? provenance = freezed,Object? destination = freezed,Object? datedepartprevue = freezed,Object? demarre = null,Object? placestotal = null,Object? placesoccupees = null,Object? garecouranteId = freezed,Object? garecouranteLibelle = freezed,Object? carId = freezed,Object? carMatricule = freezed,Object? peutRepartir = null,Object? arrets = null,Object? maRecette = null,Object? mesTickets = null,Object? mesBagages = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,codevoyage: freezed == codevoyage ? _self.codevoyage : codevoyage // ignore: cast_nullable_to_non_nullable
-as String?,provenance: freezed == provenance ? _self.provenance : provenance // ignore: cast_nullable_to_non_nullable
+as String?,numerodepart: freezed == numerodepart ? _self.numerodepart : numerodepart // ignore: cast_nullable_to_non_nullable
+as int?,provenance: freezed == provenance ? _self.provenance : provenance // ignore: cast_nullable_to_non_nullable
 as String?,destination: freezed == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
 as String?,datedepartprevue: freezed == datedepartprevue ? _self.datedepartprevue : datedepartprevue // ignore: cast_nullable_to_non_nullable
 as DateTime?,demarre: null == demarre ? _self.demarre : demarre // ignore: cast_nullable_to_non_nullable
@@ -169,10 +172,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String? codevoyage,  String? provenance,  String? destination,  DateTime? datedepartprevue,  bool demarre,  int placestotal,  int placesoccupees,  int? garecouranteId,  String? garecouranteLibelle,  int? carId,  String? carMatricule,  bool peutRepartir,  List<Arret> arrets,  int maRecette,  int mesTickets,  int mesBagages)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String? codevoyage,  int? numerodepart,  String? provenance,  String? destination,  DateTime? datedepartprevue,  bool demarre,  int placestotal,  int placesoccupees,  int? garecouranteId,  String? garecouranteLibelle,  int? carId,  String? carMatricule,  bool peutRepartir,  List<Arret> arrets,  int maRecette,  int mesTickets,  int mesBagages)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VoyageCommercial() when $default != null:
-return $default(_that.id,_that.codevoyage,_that.provenance,_that.destination,_that.datedepartprevue,_that.demarre,_that.placestotal,_that.placesoccupees,_that.garecouranteId,_that.garecouranteLibelle,_that.carId,_that.carMatricule,_that.peutRepartir,_that.arrets,_that.maRecette,_that.mesTickets,_that.mesBagages);case _:
+return $default(_that.id,_that.codevoyage,_that.numerodepart,_that.provenance,_that.destination,_that.datedepartprevue,_that.demarre,_that.placestotal,_that.placesoccupees,_that.garecouranteId,_that.garecouranteLibelle,_that.carId,_that.carMatricule,_that.peutRepartir,_that.arrets,_that.maRecette,_that.mesTickets,_that.mesBagages);case _:
   return orElse();
 
 }
@@ -190,10 +193,10 @@ return $default(_that.id,_that.codevoyage,_that.provenance,_that.destination,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String? codevoyage,  String? provenance,  String? destination,  DateTime? datedepartprevue,  bool demarre,  int placestotal,  int placesoccupees,  int? garecouranteId,  String? garecouranteLibelle,  int? carId,  String? carMatricule,  bool peutRepartir,  List<Arret> arrets,  int maRecette,  int mesTickets,  int mesBagages)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String? codevoyage,  int? numerodepart,  String? provenance,  String? destination,  DateTime? datedepartprevue,  bool demarre,  int placestotal,  int placesoccupees,  int? garecouranteId,  String? garecouranteLibelle,  int? carId,  String? carMatricule,  bool peutRepartir,  List<Arret> arrets,  int maRecette,  int mesTickets,  int mesBagages)  $default,) {final _that = this;
 switch (_that) {
 case _VoyageCommercial():
-return $default(_that.id,_that.codevoyage,_that.provenance,_that.destination,_that.datedepartprevue,_that.demarre,_that.placestotal,_that.placesoccupees,_that.garecouranteId,_that.garecouranteLibelle,_that.carId,_that.carMatricule,_that.peutRepartir,_that.arrets,_that.maRecette,_that.mesTickets,_that.mesBagages);case _:
+return $default(_that.id,_that.codevoyage,_that.numerodepart,_that.provenance,_that.destination,_that.datedepartprevue,_that.demarre,_that.placestotal,_that.placesoccupees,_that.garecouranteId,_that.garecouranteLibelle,_that.carId,_that.carMatricule,_that.peutRepartir,_that.arrets,_that.maRecette,_that.mesTickets,_that.mesBagages);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -210,10 +213,10 @@ return $default(_that.id,_that.codevoyage,_that.provenance,_that.destination,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String? codevoyage,  String? provenance,  String? destination,  DateTime? datedepartprevue,  bool demarre,  int placestotal,  int placesoccupees,  int? garecouranteId,  String? garecouranteLibelle,  int? carId,  String? carMatricule,  bool peutRepartir,  List<Arret> arrets,  int maRecette,  int mesTickets,  int mesBagages)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String? codevoyage,  int? numerodepart,  String? provenance,  String? destination,  DateTime? datedepartprevue,  bool demarre,  int placestotal,  int placesoccupees,  int? garecouranteId,  String? garecouranteLibelle,  int? carId,  String? carMatricule,  bool peutRepartir,  List<Arret> arrets,  int maRecette,  int mesTickets,  int mesBagages)?  $default,) {final _that = this;
 switch (_that) {
 case _VoyageCommercial() when $default != null:
-return $default(_that.id,_that.codevoyage,_that.provenance,_that.destination,_that.datedepartprevue,_that.demarre,_that.placestotal,_that.placesoccupees,_that.garecouranteId,_that.garecouranteLibelle,_that.carId,_that.carMatricule,_that.peutRepartir,_that.arrets,_that.maRecette,_that.mesTickets,_that.mesBagages);case _:
+return $default(_that.id,_that.codevoyage,_that.numerodepart,_that.provenance,_that.destination,_that.datedepartprevue,_that.demarre,_that.placestotal,_that.placesoccupees,_that.garecouranteId,_that.garecouranteLibelle,_that.carId,_that.carMatricule,_that.peutRepartir,_that.arrets,_that.maRecette,_that.mesTickets,_that.mesBagages);case _:
   return null;
 
 }
@@ -225,11 +228,14 @@ return $default(_that.id,_that.codevoyage,_that.provenance,_that.destination,_th
 @JsonSerializable()
 
 class _VoyageCommercial extends VoyageCommercial {
-  const _VoyageCommercial({required this.id, this.codevoyage, this.provenance, this.destination, this.datedepartprevue, this.demarre = false, this.placestotal = 0, this.placesoccupees = 0, this.garecouranteId, this.garecouranteLibelle, this.carId, this.carMatricule, this.peutRepartir = false, final  List<Arret> arrets = const <Arret>[], this.maRecette = 0, this.mesTickets = 0, this.mesBagages = 0}): _arrets = arrets,super._();
+  const _VoyageCommercial({required this.id, this.codevoyage, this.numerodepart, this.provenance, this.destination, this.datedepartprevue, this.demarre = false, this.placestotal = 0, this.placesoccupees = 0, this.garecouranteId, this.garecouranteLibelle, this.carId, this.carMatricule, this.peutRepartir = false, final  List<Arret> arrets = const <Arret>[], this.maRecette = 0, this.mesTickets = 0, this.mesBagages = 0}): _arrets = arrets,super._();
   factory _VoyageCommercial.fromJson(Map<String, dynamic> json) => _$VoyageCommercialFromJson(json);
 
 @override final  int id;
 @override final  String? codevoyage;
+/// Numéro de départ DU JOUR (« DEPART 4 » sur le reçu) : le repère que le
+/// passager entend au quai. Attribué par le serveur, jamais calculé ici.
+@override final  int? numerodepart;
 @override final  String? provenance;
 @override final  String? destination;
 @override final  DateTime? datedepartprevue;
@@ -265,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VoyageCommercial&&(identical(other.id, id) || other.id == id)&&(identical(other.codevoyage, codevoyage) || other.codevoyage == codevoyage)&&(identical(other.provenance, provenance) || other.provenance == provenance)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.datedepartprevue, datedepartprevue) || other.datedepartprevue == datedepartprevue)&&(identical(other.demarre, demarre) || other.demarre == demarre)&&(identical(other.placestotal, placestotal) || other.placestotal == placestotal)&&(identical(other.placesoccupees, placesoccupees) || other.placesoccupees == placesoccupees)&&(identical(other.garecouranteId, garecouranteId) || other.garecouranteId == garecouranteId)&&(identical(other.garecouranteLibelle, garecouranteLibelle) || other.garecouranteLibelle == garecouranteLibelle)&&(identical(other.carId, carId) || other.carId == carId)&&(identical(other.carMatricule, carMatricule) || other.carMatricule == carMatricule)&&(identical(other.peutRepartir, peutRepartir) || other.peutRepartir == peutRepartir)&&const DeepCollectionEquality().equals(other._arrets, _arrets)&&(identical(other.maRecette, maRecette) || other.maRecette == maRecette)&&(identical(other.mesTickets, mesTickets) || other.mesTickets == mesTickets)&&(identical(other.mesBagages, mesBagages) || other.mesBagages == mesBagages));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VoyageCommercial&&(identical(other.id, id) || other.id == id)&&(identical(other.codevoyage, codevoyage) || other.codevoyage == codevoyage)&&(identical(other.numerodepart, numerodepart) || other.numerodepart == numerodepart)&&(identical(other.provenance, provenance) || other.provenance == provenance)&&(identical(other.destination, destination) || other.destination == destination)&&(identical(other.datedepartprevue, datedepartprevue) || other.datedepartprevue == datedepartprevue)&&(identical(other.demarre, demarre) || other.demarre == demarre)&&(identical(other.placestotal, placestotal) || other.placestotal == placestotal)&&(identical(other.placesoccupees, placesoccupees) || other.placesoccupees == placesoccupees)&&(identical(other.garecouranteId, garecouranteId) || other.garecouranteId == garecouranteId)&&(identical(other.garecouranteLibelle, garecouranteLibelle) || other.garecouranteLibelle == garecouranteLibelle)&&(identical(other.carId, carId) || other.carId == carId)&&(identical(other.carMatricule, carMatricule) || other.carMatricule == carMatricule)&&(identical(other.peutRepartir, peutRepartir) || other.peutRepartir == peutRepartir)&&const DeepCollectionEquality().equals(other._arrets, _arrets)&&(identical(other.maRecette, maRecette) || other.maRecette == maRecette)&&(identical(other.mesTickets, mesTickets) || other.mesTickets == mesTickets)&&(identical(other.mesBagages, mesBagages) || other.mesBagages == mesBagages));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,codevoyage,provenance,destination,datedepartprevue,demarre,placestotal,placesoccupees,garecouranteId,garecouranteLibelle,carId,carMatricule,peutRepartir,const DeepCollectionEquality().hash(_arrets),maRecette,mesTickets,mesBagages);
+int get hashCode => Object.hash(runtimeType,id,codevoyage,numerodepart,provenance,destination,datedepartprevue,demarre,placestotal,placesoccupees,garecouranteId,garecouranteLibelle,carId,carMatricule,peutRepartir,const DeepCollectionEquality().hash(_arrets),maRecette,mesTickets,mesBagages);
 
 @override
 String toString() {
-  return 'VoyageCommercial(id: $id, codevoyage: $codevoyage, provenance: $provenance, destination: $destination, datedepartprevue: $datedepartprevue, demarre: $demarre, placestotal: $placestotal, placesoccupees: $placesoccupees, garecouranteId: $garecouranteId, garecouranteLibelle: $garecouranteLibelle, carId: $carId, carMatricule: $carMatricule, peutRepartir: $peutRepartir, arrets: $arrets, maRecette: $maRecette, mesTickets: $mesTickets, mesBagages: $mesBagages)';
+  return 'VoyageCommercial(id: $id, codevoyage: $codevoyage, numerodepart: $numerodepart, provenance: $provenance, destination: $destination, datedepartprevue: $datedepartprevue, demarre: $demarre, placestotal: $placestotal, placesoccupees: $placesoccupees, garecouranteId: $garecouranteId, garecouranteLibelle: $garecouranteLibelle, carId: $carId, carMatricule: $carMatricule, peutRepartir: $peutRepartir, arrets: $arrets, maRecette: $maRecette, mesTickets: $mesTickets, mesBagages: $mesBagages)';
 }
 
 
@@ -285,7 +291,7 @@ abstract mixin class _$VoyageCommercialCopyWith<$Res> implements $VoyageCommerci
   factory _$VoyageCommercialCopyWith(_VoyageCommercial value, $Res Function(_VoyageCommercial) _then) = __$VoyageCommercialCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String? codevoyage, String? provenance, String? destination, DateTime? datedepartprevue, bool demarre, int placestotal, int placesoccupees, int? garecouranteId, String? garecouranteLibelle, int? carId, String? carMatricule, bool peutRepartir, List<Arret> arrets, int maRecette, int mesTickets, int mesBagages
+ int id, String? codevoyage, int? numerodepart, String? provenance, String? destination, DateTime? datedepartprevue, bool demarre, int placestotal, int placesoccupees, int? garecouranteId, String? garecouranteLibelle, int? carId, String? carMatricule, bool peutRepartir, List<Arret> arrets, int maRecette, int mesTickets, int mesBagages
 });
 
 
@@ -302,11 +308,12 @@ class __$VoyageCommercialCopyWithImpl<$Res>
 
 /// Create a copy of VoyageCommercial
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? codevoyage = freezed,Object? provenance = freezed,Object? destination = freezed,Object? datedepartprevue = freezed,Object? demarre = null,Object? placestotal = null,Object? placesoccupees = null,Object? garecouranteId = freezed,Object? garecouranteLibelle = freezed,Object? carId = freezed,Object? carMatricule = freezed,Object? peutRepartir = null,Object? arrets = null,Object? maRecette = null,Object? mesTickets = null,Object? mesBagages = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? codevoyage = freezed,Object? numerodepart = freezed,Object? provenance = freezed,Object? destination = freezed,Object? datedepartprevue = freezed,Object? demarre = null,Object? placestotal = null,Object? placesoccupees = null,Object? garecouranteId = freezed,Object? garecouranteLibelle = freezed,Object? carId = freezed,Object? carMatricule = freezed,Object? peutRepartir = null,Object? arrets = null,Object? maRecette = null,Object? mesTickets = null,Object? mesBagages = null,}) {
   return _then(_VoyageCommercial(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,codevoyage: freezed == codevoyage ? _self.codevoyage : codevoyage // ignore: cast_nullable_to_non_nullable
-as String?,provenance: freezed == provenance ? _self.provenance : provenance // ignore: cast_nullable_to_non_nullable
+as String?,numerodepart: freezed == numerodepart ? _self.numerodepart : numerodepart // ignore: cast_nullable_to_non_nullable
+as int?,provenance: freezed == provenance ? _self.provenance : provenance // ignore: cast_nullable_to_non_nullable
 as String?,destination: freezed == destination ? _self.destination : destination // ignore: cast_nullable_to_non_nullable
 as String?,datedepartprevue: freezed == datedepartprevue ? _self.datedepartprevue : datedepartprevue // ignore: cast_nullable_to_non_nullable
 as DateTime?,demarre: null == demarre ? _self.demarre : demarre // ignore: cast_nullable_to_non_nullable

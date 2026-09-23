@@ -470,6 +470,7 @@ RecuData recuFromVente(VenteState state, Entreprise? ent) => RecuData(
       monteeLibelle: state.montee?.libelle,
       descenteLibelle: state.descente?.libelle,
       codevoyage: state.voyage?.codevoyage,
+      numerodepart: state.voyage?.numerodepart,
       vehicule: state.voyage?.carMatricule,
       dateDepart: state.voyage?.datedepartprevue,
       dateEmission: DateTime.now(),

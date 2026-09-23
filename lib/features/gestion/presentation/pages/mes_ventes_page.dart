@@ -88,6 +88,7 @@ class _BilletsTab extends ConsumerWidget {
       monteeLibelle: t.monteeLibelle,
       descenteLibelle: t.descenteLibelle,
       codevoyage: voyage?.codevoyage,
+      numerodepart: voyage?.numerodepart,
       vehicule: voyage?.carMatricule,
       dateDepart: voyage?.datedepartprevue,
       dateEmission: t.dateEmission,

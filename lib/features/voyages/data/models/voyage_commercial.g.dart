@@ -10,6 +10,7 @@ _VoyageCommercial _$VoyageCommercialFromJson(Map<String, dynamic> json) =>
     _VoyageCommercial(
       id: (json['id'] as num).toInt(),
       codevoyage: json['codevoyage'] as String?,
+      numerodepart: (json['numerodepart'] as num?)?.toInt(),
       provenance: json['provenance'] as String?,
       destination: json['destination'] as String?,
       datedepartprevue: json['datedepartprevue'] == null
@@ -37,6 +38,7 @@ Map<String, dynamic> _$VoyageCommercialToJson(_VoyageCommercial instance) =>
     <String, dynamic>{
       'id': instance.id,
       'codevoyage': instance.codevoyage,
+      'numerodepart': instance.numerodepart,
       'provenance': instance.provenance,
       'destination': instance.destination,
       'datedepartprevue': instance.datedepartprevue?.toIso8601String(),

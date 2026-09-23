@@ -67,9 +67,22 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
   proposé dès l'enregistrement** (à la vente comme dans « Mes ventes »).
 - **Reçus PDF** au **même format que l'impression du front web** — billet
   (`mails/ticket/thermalpdf.html.twig` : en-tête sigle/gare via `/api/me/entreprise`, trajet, grille
-  voyage/siège, tarif, véhicule, **QR** code billet, souche) et bagage (`mails/bagage/ticket.html.twig`).
+  **départ/siège**, tarif, code voyage, **QR** code billet, souche) et bagage
+  (`mails/bagage/ticket.html.twig`).
   Code partagé et autonome : [`core/pdf/recu_pdf.dart`](lib/core/pdf/recu_pdf.dart),
   [`core/pdf/bagage_recu_pdf.dart`](lib/core/pdf/bagage_recu_pdf.dart).
+  - **NUMÉRO DE DÉPART DU JOUR** (`VoyageCommercial.numerodepart`, servi par
+    `/api/voyages/me/commercial` **et par l'instantané**) : « Départ 2 », le repère que le vendeur
+    annonce et que le passager entend. La case face au siège portait le code voyage, elle porte
+    désormais **« DEPART 4 · SIEGE 29 »** — recalé sur le ticket de référence, exactement comme le
+    thermique du web ; le code voyage a pris la ligne du **véhicule**, dont l'affichage est
+    **conservé en commentaire** (billet ET souche). Affiché aussi sur la carte d'un départ et dans
+    la barre de titre de sa fiche (`VoyageCommercial.libelleDepart`).
+  - !! un cache de départs écrit par une version ANTÉRIEURE n'a pas le numéro : le reçu retombe
+    alors sur « - » et le libellé sur le seul code voyage, plutôt que d'afficher « Départ null ».
+    Le premier chargement avec réseau le remplit. L'**étiquette bagage** est volontairement
+    inchangée : elle porte déjà « DEPART » pour la GARE de départ, deux sens sous un même mot sur
+    un ticket de 80 mm se liraient mal — et le code voyage y identifie déjà le départ.
 - **Mes ventes** (`/voyage/:id/ventes`) : mes billets et bagages du voyage —
   - **réimprimer** billet et bagage (non imprimés après la vente) ;
   - **corriger** selon mes droits : identité client (`Ticket/MODIFIER`), bagage nature/poids/montant ou
@@ -156,6 +169,9 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
 
 ```bash
 dart run build_runner watch --delete-conflicting-outputs   # régénération continue
+# !! sur ce poste, la compilation AOT du script de build est bloquée par une stratégie de contrôle
+# d'application Windows (« gen_snapshot.exe »). Ajouter --force-jit pour passer outre :
+#   dart run build_runner build --delete-conflicting-outputs --force-jit
 flutter analyze
 flutter test
 ```

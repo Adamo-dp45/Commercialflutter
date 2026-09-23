@@ -67,6 +67,10 @@ abstract class AuthUser with _$AuthUser {
     'bagage',
     'user',
     'role',
+    // Aucun écran de dépense ici, mais la liste est un MIROIR de 'GareScopedEntities::ENTITIES'
+    // côté serveur : la laisser diverger, c'est se préparer à masquer un jour un bouton que le
+    // serveur autorise.
+    'depense',
   };
 
   /// L'utilisateur peut-il agir sur [entity] via [action] ?

@@ -16,6 +16,7 @@ class RecuData {
     this.monteeLibelle,
     this.descenteLibelle,
     this.codevoyage,
+    this.numerodepart,
     this.vehicule,
     this.dateDepart,
     this.dateEmission,
@@ -33,6 +34,8 @@ class RecuData {
   final String? monteeLibelle;
   final String? descenteLibelle;
   final String? codevoyage;
+  /// Numéro de départ DU JOUR : la case que le passager lit face à son siège.
+  final int? numerodepart;
   final String? vehicule; // matricule du car
   final DateTime? dateDepart;
   final DateTime? dateEmission;
@@ -114,7 +117,7 @@ Future<Uint8List> buildRecuPdf(RecuData d) async {
         ],
       );
 
-  // Grille à deux cases (VOYAGE code | SIÈGE numéro).
+  // Grille à deux cases (DEPART numéro | SIÈGE numéro), comme le thermique du web.
   pw.Widget grille({required double keySize, required double valSize}) {
     pw.Widget box(String k, String v) => pw.Expanded(
           child: pw.Container(
@@ -132,7 +135,7 @@ Future<Uint8List> buildRecuPdf(RecuData d) async {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 5),
       child: pw.Row(children: [
-        box('VOYAGE', d.codevoyage ?? '-'),
+        box('DEPART', d.numerodepart?.toString() ?? '-'),
         pw.SizedBox(width: 14),
         box('SIEGE', d.siege ?? '-'),
       ]),
@@ -169,7 +172,12 @@ Future<Uint8List> buildRecuPdf(RecuData d) async {
           centre('$montee\n$descente', size: 13, bold: true, top: 2),
           grille(keySize: 7.5, valSize: 16),
           centre('TARIF : $tarif', size: 12, bold: true, top: 3),
-          centre('Vehicule : ${d.vehicule ?? '-'}', size: 9, top: 2),
+          // Le VÉHICULE a cédé sa ligne au CODE VOYAGE, que la case du haut a laissé partir pour
+          // afficher le numéro de départ (même échange que 'mails/ticket/thermalpdf.html.twig'
+          // côté web, recalé sur le ticket de référence). Conservé en commentaire : un format
+          // d'impression se règle sur du papier, pas sur un écran.
+          // centre('Vehicule : ${d.vehicule ?? '-'}', size: 9, top: 2),
+          centre('Voyage : ${d.codevoyage ?? '-'}', size: 9, top: 2),
           sep(),
           centre('NB : Le ticket n\'est pas remboursable', size: 8),
           pw.SizedBox(height: 6),
@@ -201,7 +209,9 @@ Future<Uint8List> buildRecuPdf(RecuData d) async {
           centre('$montee - $descente', size: 9, bold: true, top: 2),
           grille(keySize: 7, valSize: 11),
           centre('Tarif : $tarif', size: 8),
-          centre('Vehicule : ${d.vehicule ?? '-'}', size: 8),
+          // Idem sur la souche (cf. le billet ci-dessus).
+          // centre('Vehicule : ${d.vehicule ?? '-'}', size: 8),
+          centre('Voyage : ${d.codevoyage ?? '-'}', size: 8),
         ],
       ),
     ),

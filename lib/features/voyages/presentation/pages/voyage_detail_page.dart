@@ -91,7 +91,7 @@ class VoyageDetailPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(voyage.codevoyage ?? 'Voyage #${voyage.id}'),
+        title: Text(voyage.libelleDepart),
         // Sous le titre : ce qui reste à remonter. Le vendeur doit le voir sans le chercher.
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(0),

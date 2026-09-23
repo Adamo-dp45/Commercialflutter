@@ -29,7 +29,7 @@ class VoyageCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      voyage.codevoyage ?? 'Voyage #${voyage.id}',
+                      voyage.libelleDepart,
                       style: theme.textTheme.labelLarge?.copyWith(
                         fontFeatures: const [],
                         color: scheme.onSurfaceVariant,
