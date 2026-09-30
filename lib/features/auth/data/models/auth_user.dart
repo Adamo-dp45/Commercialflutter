@@ -71,6 +71,10 @@ abstract class AuthUser with _$AuthUser {
     // côté serveur : la laisser diverger, c'est se préparer à masquer un jour un bouton que le
     // serveur autorise.
     'depense',
+    // Ni caisse ni clôture à bord — le commercial n'a pas de guichet, ses ventes n'entrent dans
+    // aucune session. La ligne est là parce que la liste est un MIROIR, pas un inventaire des
+    // écrans de cette application.
+    'sessioncaisse',
   };
 
   /// L'utilisateur peut-il agir sur [entity] via [action] ?
