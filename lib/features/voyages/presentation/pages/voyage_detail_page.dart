@@ -123,6 +123,16 @@ class VoyageDetailPage extends ConsumerWidget {
             label: const Text('Manifeste des passagers'),
           ),
           const SizedBox(height: 8),
+          // CONTRÔLE AU QUAI : il DEMANDE DU RÉSEAU, contrairement à tout le reste de cet écran.
+          // Le téléphone ne détient ni le secret qui signe les QR, ni l'état des autres contrôles :
+          // il ne peut donc ni reconnaître un faux, ni voir qu'un billet est déjà monté. L'écran
+          // le dit quand l'appel échoue, plutôt que de promettre un verdict qu'il ne tient pas.
+          OutlinedButton.icon(
+            onPressed: () => context.push(AppRoutes.controle(voyage.id)),
+            icon: const Icon(Icons.qr_code_scanner_outlined),
+            label: const Text('Contrôler les billets (scan)'),
+          ),
+          const SizedBox(height: 8),
           // Toujours offert, même file vide : c'est là que le vendeur vient vérifier ce qui est
           // passé, et le chercher ne doit pas dépendre d'un état qu'il ne contrôle pas.
           _BoutonOperations(voyageId: voyage.id),

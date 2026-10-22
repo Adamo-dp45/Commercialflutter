@@ -386,6 +386,8 @@ class VenteRepositoryImpl implements VenteRepository {
           'mesBagages': ((voyage['mesBagages'] as num?)?.toInt() ?? 0) + 1,
         });
 
-    return (codebagage: code, montant: facture, montantForce: force);
+    // `id: null` : créé hors ligne, le bagage attend dans la file de synchronisation. Son reçu
+    // sera donc composé localement — il n'y a rien à demander au serveur.
+    return (codebagage: code, montant: facture, montantForce: force, id: null);
   }
 }

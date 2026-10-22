@@ -6,14 +6,6 @@ part of 'auth_user.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_Permission _$PermissionFromJson(Map<String, dynamic> json) => _Permission(
-  entity: json['entity'] as String,
-  action: json['action'] as String,
-);
-
-Map<String, dynamic> _$PermissionToJson(_Permission instance) =>
-    <String, dynamic>{'entity': instance.entity, 'action': instance.action};
-
 _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) => _AuthUser(
   id: (json['id'] as num?)?.toInt(),
   email: json['email'] as String?,
@@ -24,9 +16,9 @@ _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) => _AuthUser(
       const <String>[],
   entrepriseid: (json['entrepriseid'] as num?)?.toInt(),
   fileUrl: json['fileUrl'] as String?,
-  permissions: json['userRoles'] == null
-      ? const <Permission>[]
-      : _permissionsFromUserRoles(json['userRoles']),
+  droits: json['permissions'] == null
+      ? DroitsEffectifs.aucun
+      : DroitsEffectifs.depuisJson(json['permissions']),
 );
 
 Map<String, dynamic> _$AuthUserToJson(_AuthUser instance) => <String, dynamic>{

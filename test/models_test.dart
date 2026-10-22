@@ -203,41 +203,84 @@ void main() {
     });
   });
 
-  group('AuthUser — permissions', () {
-    test('admin bypasse toute permission', () {
-      const user = AuthUser(roles: ['ROLE_ADMIN']);
-      expect(user.can('Bagage', 'CREER'), isTrue);
-    });
-
-    test('permission explicite, insensible à la casse', () {
-      const user = AuthUser(
-        roles: ['ROLE_USER'],
-        permissions: [Permission(entity: 'Bagage', action: 'CREER')],
-      );
-      expect(user.can('bagage', 'creer'), isTrue);
-      expect(user.can('Ticket', 'SUPPRIMER'), isFalse);
-    });
-
-    test('aplatissement des permissions depuis /api/me (userRoles)', () {
+  group('AuthUser — droits servis par /api/me', () {
+    test('les droits viennent du serveur, entité par entité', () {
       final user = AuthUser.fromJson(const {
         'id': 1,
-        'nom': 'Kone',
-        'prenom': 'Awa',
         'roles': ['ROLE_USER'],
+        'permissions': {
+          'tout': false,
+          'accordees': ['bagage:CREER', 'bagage:VOIR'],
+        },
+      });
+
+      expect(user.can('Bagage', 'CREER'), isTrue);
+      expect(user.can('bagage', 'creer'), isTrue, reason: 'la casse ne compte pas');
+      expect(user.can('Bagage', 'SUPPRIMER'), isFalse);
+      expect(user.can('Ticket', 'VOIR'), isFalse);
+    });
+
+    test('le drapeau « tout » ouvre tout, sans énumérer', () {
+      final user = AuthUser.fromJson(const {
+        'id': 1,
+        'roles': ['ROLE_USER'],
+        'permissions': {'tout': true, 'accordees': <String>[]},
+      });
+
+      expect(user.can('NimporteQuoi', 'CLOTURER'), isTrue);
+    });
+
+    test("l'application n'ajoute aucun contournement au profil servi", () {
+      /*
+        LE CAS QUI COMPTE. Ce compte porte les deux rôles qui déclenchaient un bypass dans le
+        calcul hérité — et le serveur, lui, n'accorde rien. Si `can` regardait encore les rôles,
+        il répondrait vrai : c'est exactement la divergence que ce chantier ferme.
+      */
+      final user = AuthUser.fromJson(const {
+        'id': 1,
+        'roles': ['ROLE_SUPER_ADMIN', 'ROLE_ADMIN_GARE'],
+        'permissions': {'tout': false, 'accordees': <String>[]},
         'userRoles': [
           {
             'role': {
               'permissions': [
-                {'entity': 'Bagage', 'action': 'CREER'},
                 {'entity': 'Ticket', 'action': 'VOIR'},
               ],
             },
           },
         ],
       });
-      expect(user.displayName, 'Awa Kone');
-      expect(user.can('Bagage', 'CREER'), isTrue);
-      expect(user.can('Ticket', 'CREER'), isFalse);
+
+      expect(user.can('Ticket', 'VOIR'), isFalse, reason: 'le serveur fait foi');
+      expect(user.can('Bagage', 'CREER'), isFalse);
+    });
+
+    test("un profil abîmé n'accorde rien, et ne lève pas", () {
+      final user = AuthUser.fromJson(const {
+        'id': 1,
+        'roles': ['ROLE_ADMIN'],
+        'permissions': "ceci n'est pas un profil",
+      });
+
+      expect(
+        user.can('Bagage', 'CREER'),
+        isFalse,
+        reason: "aucun repli local : 'ROLE_ADMIN' dans les rôles ne décide plus de rien",
+      );
+    });
+
+    test('deux profils identiques sont égaux (Riverpod ne redessine pas pour rien)', () {
+      const profil = {
+        'id': 1,
+        'roles': ['ROLE_USER'],
+        'permissions': {
+          'tout': false,
+          'accordees': ['bagage:CREER'],
+        },
+      };
+
+      expect(AuthUser.fromJson(profil), equals(AuthUser.fromJson(profil)));
     });
   });
+
 }

@@ -4,7 +4,9 @@ import 'package:printing/printing.dart';
 
 import '../../../../core/formatting/formatters.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/models/bagage_cree.dart';
 import '../../../../core/pdf/bagage_recu_pdf.dart';
+import '../../../../core/pdf/impression_providers.dart';
 import '../../../../core/pdf/recu_pdf.dart';
 import '../../../../core/widgets/app_state_views.dart';
 import '../../../../core/widgets/async_value_widget.dart';
@@ -81,7 +83,13 @@ class _BilletsTab extends ConsumerWidget {
   Future<void> _reimprimer(
       WidgetRef ref, TicketDetail t, VoyageCommercial? voyage) async {
     final ent = await _entreprise(ref);
-    final bytes = await buildRecuPdf(RecuData(
+    /*
+      Réimpression : le serveur rend le billet, le rendu local sert de repli hors ligne. La
+      maquette a déménagé le 20/10/2026 ; ce qui suit reste la source du repli.
+    */
+    final bytes = await ref.read(recuImprimableProvider).billet(
+      id: t.id,
+      repli: RecuData(
       codeticket: t.codeticket ?? '-',
       prixNet: t.prix,
       remise: t.remise,
@@ -325,7 +333,9 @@ class _BagagesTab extends ConsumerWidget {
   Future<void> _reimprimer(
       WidgetRef ref, BagageDetail b, VoyageCommercial? voyage) async {
     final ent = await _entreprise(ref);
-    final bytes = await buildBagageRecuPdf(BagageRecuData(
+    final bytes = await ref.read(recuImprimableProvider).bagage(
+      id: b.id,
+      repli: BagageRecuData(
       codebagage: b.codebagage ?? '-',
       nature: b.nature,
       type: b.type,
@@ -705,7 +715,9 @@ class _BagageFormSheetState extends ConsumerState<_BagageFormSheet> {
         action: SnackBarAction(
           label: 'Reçu',
           onPressed: () async {
-            final bytes = await buildBagageRecuPdf(recu);
+            final bytes = await ref
+                .read(recuImprimableProvider)
+                .bagage(id: cree.id, repli: recu);
             await Printing.sharePdf(
                 bytes: bytes, filename: 'bagage-${cree.codebagage}.pdf');
           },
@@ -720,7 +732,7 @@ class _BagageFormSheetState extends ConsumerState<_BagageFormSheet> {
   }
 
   Future<BagageRecuData> _recuBagage(
-      ({String codebagage, int montant, bool montantForce}) cree,
+      BagageCree cree,
       String nature,
       int poids) async {
     final t = widget.ticket;

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/controle/presentation/pages/controle_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/providers/auth_controller.dart';
@@ -27,6 +28,8 @@ class AppRoutes {
   static String vente(int id) => '/voyage/$id/vente';
   static String mesVentes(int id) => '/voyage/$id/ventes';
   static String manifeste(int id) => '/voyage/$id/manifeste';
+  /// Le contrôle d'embarquement : un écran de QUAI, ouvert depuis la fiche du départ.
+  static String controle(int id) => '/voyage/$id/controle';
   static String operations(int id) => '/voyage/$id/operations';
 }
 
@@ -102,6 +105,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'manifeste',
             builder: (context, state) => ManifestePage(
+              voyageId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+            ),
+          ),
+          GoRoute(
+            path: 'controle',
+            builder: (context, state) => ControlePage(
               voyageId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
             ),
           ),

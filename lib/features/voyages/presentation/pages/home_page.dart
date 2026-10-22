@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/app_state_views.dart';
 import '../../../../core/widgets/async_value_widget.dart';
+import '../../../../core/widgets/feuille_format_impression.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../../core/router/app_router.dart';
 import '../providers/voyage_providers.dart';
@@ -38,6 +39,10 @@ class HomePage extends ConsumerWidget {
               if (value == 'logout') {
                 ref.read(authControllerProvider.notifier).logout();
               }
+              // Le format du papier dépend de la MACHINE de ce téléphone : cf. `FormatImpression`.
+              if (value == 'imprimante') {
+                ouvrirFeuilleFormatImpression(context);
+              }
             },
             itemBuilder: (context) => [
               PopupMenuItem<String>(
@@ -45,6 +50,14 @@ class HomePage extends ConsumerWidget {
                 child: Text(user?.displayName ?? 'Commercial'),
               ),
               const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'imprimante',
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.print_outlined),
+                  title: Text('Mon imprimante'),
+                ),
+              ),
               const PopupMenuItem<String>(
                 value: 'logout',
                 child: ListTile(

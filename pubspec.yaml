@@ -46,6 +46,10 @@ dependencies:
   connectivity_plus: ^7.0.0
   # Référence d'idempotence de chaque opération : c'est elle qui rend un lot rejouable sans doublon.
   uuid: ^4.5.1
+  # Lecture du QR au CONTRÔLE D’EMBARQUEMENT (fiche B2). Le paquet déclare lui-même la
+  # permission CAMERA côté Android, et la caméra en « required=false » : un téléphone sans
+  # caméra peut toujours installer l’application et contrôler à la saisie manuelle.
+  mobile_scanner: ^7.4.2
 
 dev_dependencies:
   flutter_test:

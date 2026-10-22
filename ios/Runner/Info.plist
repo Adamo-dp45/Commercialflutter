@@ -66,5 +66,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- CAMÉRA : exigée par iOS dès qu'une application peut l'ouvrir, et son absence ne donne pas
+	     un refus poli mais un ARRÊT BRUTAL au premier scan. Le texte est montré tel quel au
+	     contrôleur : il doit dire à quoi sert l'accès, pas le réclamer. -->
+	<key>NSCameraUsageDescription</key>
+	<string>La caméra sert à lire le QR code des billets lors du contrôle d’embarquement.</string>
 </dict>
 </plist>

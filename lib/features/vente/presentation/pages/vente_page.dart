@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../../../../core/formatting/formatters.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/pdf/bagage_recu_pdf.dart';
+import '../../../../core/pdf/impression_providers.dart';
 import '../../../../core/pdf/recu_pdf.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -496,7 +497,16 @@ class _RecuStep extends ConsumerWidget {
     } catch (_) {
       ent = null;
     }
-    final bytes = await buildRecuPdf(recuFromVente(state, ent));
+    /*
+      LE BILLET VIENT DU SERVEUR quand il y est (20/10/2026) : la maquette a quitté les quatre
+      endroits où elle vivait pour rejoindre ses données. Le rendu local reste le REPLI — une
+      vente hors ligne n'a pas encore d'identifiant serveur, et sans réseau il n'y a rien à
+      demander. Le détail du raisonnement est dans `ImpressionDistante`.
+    */
+    final bytes = await ref.read(recuImprimableProvider).billet(
+          id: state.ticket?.id,
+          repli: recuFromVente(state, ent),
+        );
     await Printing.sharePdf(
       bytes: bytes,
       filename: 'billet-${state.ticket?.codeticket ?? 'recu'}.pdf',
@@ -713,7 +723,9 @@ class _BagageSheetState extends ConsumerState<_BagageSheet> {
         action: SnackBarAction(
           label: 'Reçu',
           onPressed: () async {
-            final bytes = await buildBagageRecuPdf(recu);
+            final bytes = await ref
+                .read(recuImprimableProvider)
+                .bagage(id: cree.id, repli: recu);
             await Printing.sharePdf(
                 bytes: bytes, filename: 'bagage-${cree.codebagage}.pdf');
           },

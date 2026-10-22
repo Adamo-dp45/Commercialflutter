@@ -71,6 +71,92 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
   (`mails/bagage/ticket.html.twig`).
   Code partagé et autonome : [`core/pdf/recu_pdf.dart`](lib/core/pdf/recu_pdf.dart),
   [`core/pdf/bagage_recu_pdf.dart`](lib/core/pdf/bagage_recu_pdf.dart).
+  - **LE BILLET ET LE REÇU DE BAGAGE VIENNENT DU SERVEUR** (20/10/2026,
+    [`core/pdf/impression_distante.dart`](lib/core/pdf/impression_distante.dart)) : la maquette était
+    composée ici, dans le front web et dans les deux apps de réservation — quatre versions du même
+    papier, dans trois langages. Elle vit désormais auprès de ses données et l'API la rend pour tous
+    les canaux (`GET /api/tickets/{id}/print`, `GET /api/bagages/{id}/print`).
+    - !! `recu_pdf.dart` et `bagage_recu_pdf.dart` RESTENT, comme REPLI hors-ligne : le commercial
+      vend et imprime sans réseau, à bord du car. C'est la limite irréductible de la règle « une
+      seule source » — on passe de quatre rendus à deux, pas à un.
+    - DEUX situations amènent au repli, à ne pas confondre : le document n'a pas d'IDENTIFIANT
+      SERVEUR (vente hors ligne : il n'y a rien à demander, même avec du réseau), ou l'appel ÉCHOUE
+      faute de réseau. La bascule se décide sur l'échec réel (`ApiException.estHorsLigne`), jamais
+      sur l'état déclaré du réseau — un téléphone accroché à une antenne sans débit se dit connecté.
+    - Toute AUTRE erreur remonte : composer un papier en réponse à un refus du serveur reviendrait
+      à imprimer ce qu'il vient d'interdire.
+    - `BagageCree` porte désormais son `id` (nul après une création hors ligne) : sans lui, le reçu
+      ne pouvait pas être demandé à l'API.
+    - Sentinelles : [`test/impression_distante_test.dart`](test/impression_distante_test.dart),
+      vérifiées discriminantes. Elles tiennent la DÉCISION DE BASCULE, qui ne se voit nulle part à
+      l'écran : un billet du serveur et un billet composé ici se ressemblent, et l'on ne s'en
+      apercevrait qu'au comptoir, des semaines plus tard, devant deux papiers différents.
+  - **« MON IMPRIMANTE » : LE FORMAT EST UN RÉGLAGE DE L'APPAREIL** (21/10/2026,
+    [`core/pdf/format_impression.dart`](lib/core/pdf/format_impression.dart)) : le billet sort sur
+    deux matériels — la thermique de 80 mm, et les terminaux à rouleau large (du genre A5) de
+    certaines gares, sur lesquels un billet composé pour 80 mm paraît minuscule au milieu de la
+    page. L'API sait rendre les deux (`?format=large`) ; il manquait de dire lequel. Le choix se
+    fait dans le menu du compte, à l'accueil, et vit dans le téléphone.
+    - LE SERVEUR NE PEUT PAS LE DEVINER : le format ne dépend ni de l'entreprise, ni de la gare, ni
+      du voyage, mais de la MACHINE posée devant l'agent — deux vendeurs d'une même gare peuvent
+      avoir deux imprimantes. D'où un réglage local, et non une colonne en base.
+    - !! LE FORMAT SE DÉCIDE DANS `RecuImprimable`, pas chez les trois écrans qui impriment. Un
+      oubli dans l'un d'eux sortirait un papier étroit sur un terminal large sans que rien ne le
+      signale. Une SENTINELLE tient le câblage du provider en plus de la classe : sans elle, un
+      `RecuImprimable` qui sait lire le réglage mais ne le reçoit jamais resterait vert.
+    - Le format est LU À CHAQUE IMPRESSION, dans le stockage, et non gardé en mémoire : un état
+      chargé en arrière-plan vaudrait « thermique » le temps de son chargement, et un billet émis
+      dans cet intervalle sortirait au mauvais format.
+    - LE RÉGLAGE COMMANDE LES QUATRE PAPIERS (21/10/2026) : le billet et le reçu de bagage du
+      serveur, et les deux mêmes composés ICI hors ligne. Il ne valait d'abord que pour le billet
+      du serveur — un vendeur réglé sur un terminal large retrouvait donc l'écriture minuscule dès
+      qu'il perdait le réseau, c'est-à-dire en route, là où il vend le plus ; et son reçu de bagage
+      sortait étroit même avec du réseau.
+      - `FormatImpression` porte LA MÊME TABLE que le serveur — échelle 1,8 contre 1, laize de
+        148 mm contre 80, marge horizontale de 6 mm contre 4,5 — pour que les deux papiers se
+        ressemblent, qu'ils viennent de l'API ou du téléphone. La marge ne suit pas l'échelle :
+        elle décrit la zone que la tête sait écrire, pas la taille du texte.
+      - **CETTE TABLE EST SOUS CONTRAT DEPUIS LE 21/10/2026**
+        (`Backend-Transport/tests/Domain/ContratImpressionTest.php`, qui lit ce fichier et le
+        confronte aux constantes de `PdfService`). Le serveur est l'autorité : c'est lui qui rend
+        le même billet pour le guichet et le web. Font contrat la LAIZE, la MARGE HORIZONTALE et
+        l'ÉCHELLE ; la marge VERTICALE non — ici la hauteur de page est libre et c'est le contenu
+        qui l'arrête, là-bas elle est fixe parce que le pilote coupe à chaque page.
+      - !! **LES DEUX TABLES AVAIENT DÉJÀ DIVERGÉ** : la marge horizontale du thermique valait
+        12 pt (4,233 mm) contre 4,5 mm côté serveur. Les deux tenaient dans la zone imprimable de
+        l'EPSON TM-T20III (3,753 → 75,949 mm), mais celle-ci n'y gardait que 0,18 mm de garde à
+        droite contre 0,45. Alignée sur le serveur. Un `marginAll: 5 mm` mort est parti au
+        passage : `pw.Page` reçoit son propre `margin`, qui écrase celui du format.
+      - !! LES SENTINELLES MESURENT LE PDF, PAS LE CODE (`test/recu_pdf_test.dart`). Deux choses
+        doivent bouger ENSEMBLE, et rien ne le dit à l'écran : la largeur de page (une page large
+        avec une écriture de 80 mm laisse le billet dans un coin) et la taille des caractères (une
+        écriture agrandie sur 80 mm déborde de la laize). D'où deux mesures — le `/MediaBox`, qui
+        est en clair, et l'opérateur `Tf` des flux compressés — et non une.
+      - La feuille de réglage a sa propre sentinelle d'écran
+        ([`test/feuille_format_impression_test.dart`](test/feuille_format_impression_test.dart), la
+        première du projet) : un choix qui ne s'enregistre pas laisserait tout le dispositif
+        derrière sans que rien ne tombe au rouge. C'est pour elle que le réglage passe par
+        `MagasinReglage` — `FlutterSecureStorage` lève en test, faute de canal de plate-forme.
+    - POURQUOI PAS LE DIALOGUE SYSTÈME (`Printing.layoutPdf`), qui donnerait le format réellement
+      choisi : il remplacerait le geste « Partager » — par lequel le vendeur envoie aussi le billet
+      en WhatsApp —, ajouterait un écran à chaque vente et exigerait l'appel réseau PENDANT le
+      dialogue, là où le repli doit répondre tout de suite. Le matériel ne change pas en cours de
+      journée.
+  - **LA SOUCHE DU BILLET PART SUR SA PROPRE PAGE** (20/10/2026, `recu_pdf.dart`) : une imprimante
+    thermique n'a pas de peigne de perforation, seulement une lame, et cette lame ne tombe qu'en FIN
+    DE PAGE. Deux pages est donc le seul moyen d'obtenir le billet « presque coupé » que le
+    commercial détache sans le déchirer. Même dispositif que le web, vérifié sur une EPSON TM-T20III.
+    - Le terminal doit être réglé en ROULEAU CONTINU avec « Paper Cut » sur `Page[Alim., Coup.]`.
+      `buildRecuPdf(d, soucheDetachable: false)` ramène tout sur une page : le recours pour un pilote
+      qui coupe par document, où la seconde page ne ferait qu'avancer le papier.
+    - Contrairement au PDF du web, les deux pages ont ici CHACUNE leur hauteur : le format rouleau du
+      paquet `pdf` n'impose pas de hauteur de page, elle s'arrête au contenu. Le repère
+      « DETACHER ICI » reste imprimé dans les deux modes — sans coupe à chaque page, c'est le seul guide.
+    - Sentinelles : [`test/recu_pdf_test.dart`](test/recu_pdf_test.dart), vérifiées discriminantes. Elles
+      contiennent le patron pour LIRE un PDF produit par le paquet `pdf` : les flux sont COMPRESSÉS
+      (zlib, et le saut de ligne qui suit `stream` n'en fait pas partie) et le texte est découpé MOT PAR
+      MOT (`[(DETACHER)]TJ … [(ICI)]TJ`) — chercher une phrase entière dans les octets bruts ne trouve
+      jamais rien.
   - **NUMÉRO DE DÉPART DU JOUR** (`VoyageCommercial.numerodepart`, servi par
     `/api/voyages/me/commercial` **et par l'instantané**) : « Départ 2 », le repère que le vendeur
     annonce et que le passager entend. La case face au siège portait le code voyage, elle porte
@@ -124,6 +210,34 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
     Ce dernier couvre le cas le plus fréquent en brousse : l'antenne reste « connectée » sans débit,
     puis le débit revient — aucun changement d'interface, donc aucun événement de connectivité. Le
     bouton de synchronisation reste offert, il n'est plus nécessaire.
+  - **CONTRÔLE D'EMBARQUEMENT PAR SCAN** (19/10/2026, `lib/features/controle/`) : depuis la fiche
+    d'un départ, la caméra lit le QR d'un billet et l'écran répond en trois états — valide, déjà
+    scanné, invalide — en couleur, avec le nom et le siège du passager, plus un retour haptique
+    distinct pour que l'agent n'ait pas à regarder l'écran. C'est la fiche B2 de la feuille de
+    route ; le serveur fait tout le jugement (`POST /api/tickets/pointer`).
+    - !! **CET ÉCRAN EXIGE DU RÉSEAU, et c'est le seul de l'application.** Le téléphone ne détient
+      ni le secret qui signe les QR, ni l'état d'embarquement des autres contrôles : il ne peut donc
+      ni reconnaître un faux, ni voir qu'un billet est déjà monté. Promettre un verdict hors ligne
+      serait promettre ce qu'on ne peut pas tenir. On le DIT (`EtatPointage.indisponible`, en gris
+      et **jamais en rouge**), et le chauffeur pointe au stylo sur son bordereau — ce qu'il faisait
+      de toute façon hier. Choix arrêté avec l'utilisateur le 19/10/2026, contre l'option « pointer
+      dans la file », qui aurait laissé passer un duplicata jusqu'à la synchronisation.
+    - La bascule se lit sur l'ÉCHEC RÉEL de l'appel (`ApiException.estHorsLigne`), pas sur l'état
+      déclaré du réseau : même règle que la vente, un téléphone accroché à une antenne sans débit
+      se dit connecté.
+    - **Un état inconnu devient « indisponible », jamais « invalide »** : un serveur plus récent ou
+      une réponse tronquée ne doivent pas faire refuser un passager qui a payé.
+    - **VERROU DE 3 s PAR CODE** (`VerrouScan`, testé) : une caméra relit le même QR plusieurs fois
+      par seconde. Sans lui, le premier envoi marque l'embarquement et les suivants reviennent
+      « déjà scanné » sous les yeux de l'agent, qui croit à un duplicata et arrête quelqu'un en
+      règle. Le verrou porte sur UN CODE, pas sur le scanner : deux billets d'affilée passent
+      tous les deux — c'est le cas d'une famille qui embarque.
+    - **La saisie manuelle n'est pas un pis-aller** : un QR froissé, mouillé ou imprimé trop pâle
+      ne se lit pas, et le passager est devant l'agent.
+    - PERMISSIONS : Android vient de `mobile_scanner` lui-même (`CAMERA`, et `camera` en
+      `required="false"` — un téléphone sans caméra peut toujours installer l'application et saisir
+      à la main). iOS exige `NSCameraUsageDescription` dans `Info.plist`, ajouté ici : sans lui,
+      l'application ne demande pas la permission, elle **s'arrête** au premier scan.
   - **Idempotence** : `POST /api/voyages/{id}/me/sync` rejoue la file dans l'ordre d'émission. Chaque
     opération porte une référence — un lot se renvoie sans crainte. Un refus ne fait pas tomber le
     reste du lot, et une opération fautive ne bloque jamais celles qui la suivent.
@@ -187,8 +301,25 @@ connexion : tous les appels échouent en `connectionError`, c'est-à-dire « Imp
 serveur » quelle que soit l'adresse visée. Le trafic en clair (`usesCleartextTraffic`), lui, reste
 **debug uniquement** : la production parle en HTTPS.
 
-**Le `can()` de `AuthUser` est un MIROIR du `PermissionVoter` du backend.** Un `ROLE_ADMIN_GARE` y
-agit sans permission explicite sur les entités bornées par sa gare — la liste `_gareScopedEntities`
-reproduit `GareScopedEntities::ENTITIES` (`Voyage, Ticket, Reservation, Courrier, Bagage, User,
-Role`). Cette duplication est assumée et commentée : si la liste change côté backend, celle-ci doit
-suivre, sinon l'application masque des boutons que le serveur autorise.
+**Le `can()` de `AuthUser` LIT les droits que le serveur accorde** (21/10/2026). `GET /api/me` sert
+`permissions: {tout, accordees}` — `tout` pour l'administrateur d'entreprise, `accordees` une liste
+de `entite:ACTION` — et [`DroitsEffectifs`](lib/features/auth/data/models/droits_effectifs.dart) y
+cherche. L'application ne reproduit plus aucune règle d'accès.
+
+- CE QU'ELLE FAISAIT AVANT : `can()` était un MIROIR du `PermissionVoter`, avec le bypass
+  administrateur, celui de l'admin de gare et la liste `_gareScopedEntities` recopiée à la main. Le
+  front web en gardait une copie identique. Quatre écritures de la même règle, qu'aucun code
+  n'obligeait à rester d'accord.
+- !! **ET ELLES AVAIENT DÉJÀ DIVERGÉ** : `isAdmin` comptait ici `ROLE_SUPER_ADMIN`, à qui le
+  serveur n'accorde AUCUN droit métier (il n'a pas d'entreprise, donc aucune permission ne le
+  concerne). Sans conséquence pratique — un super administrateur n'ouvre pas l'app du vendeur —
+  mais c'est bien ce que la duplication produit quand personne ne la surveille. Mesuré le
+  21/10/2026 ; détail au README du backend, module `Administration`.
+- **AUCUN REPLI SUR UN CALCUL LOCAL.** Il a été gardé quelques heures — un profil mis en cache par
+  une version antérieure ne porte pas le champ, et le vendeur aurait vu tous ses boutons
+  disparaître — puis supprimé : l'application n'est pas en production, aucun cache ancien ne
+  circule, et une seconde écriture de la règle « au cas où » aurait rouvert ce que ce chantier
+  ferme. Un profil absent ou abîmé n'accorde RIEN ; la reconnexion le répare. Le modèle
+  `Permission`, l'aplatissement des `userRoles` et `isAdmin` sont partis avec, faute de lecteur.
+- Sentinelles : `test/models_test.dart`, qui tient les deux chemins — et notamment qu'un compte
+  portant `ROLE_SUPER_ADMIN` et `ROLE_ADMIN_GARE` n'obtient RIEN si le profil servi n'accorde rien.
