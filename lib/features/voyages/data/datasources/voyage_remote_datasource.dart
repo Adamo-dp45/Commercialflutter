@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../models/voyage_commercial.dart';
+import '../models/voyage_historique.dart';
 
 /// Accès HTTP à l'espace commercial. Le Bearer est ajouté par l'AuthInterceptor.
 ///
@@ -25,6 +26,26 @@ class VoyageRemoteDataSource {
       return list
           .map((e) => VoyageCommercial.fromJson(_asMap(e)))
           .toList(growable: false);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  /// `GET /api/commercial/me/voyages` → UNE page de mon historique, du départ
+  /// le plus récent au plus ancien, voyages clôturés compris.
+  ///
+  /// Endpoint distinct de `mesVoyages()` et non un paramètre de celui-ci : l'un
+  /// sert les départs sur lesquels on AGIT (et se garde en copie locale pour le
+  /// téléphone qui redémarre en route), l'autre se consulte. Les confondre
+  /// mettrait tout l'historique dans le cache hors ligne du vendeur.
+  Future<PageVoyages> historique({int page = 1, int parPage = 20}) async {
+    try {
+      final res = await _dio.get<dynamic>(
+        '/api/commercial/me/voyages',
+        queryParameters: {'page': page, 'parPage': parPage},
+      );
+
+      return PageVoyages.fromJson(_asMap(res.data));
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

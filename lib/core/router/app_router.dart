@@ -12,6 +12,7 @@ import '../../features/horsligne/presentation/pages/operations_page.dart';
 import '../../features/manifeste/presentation/pages/manifeste_page.dart';
 import '../../features/recette/presentation/pages/ma_recette_page.dart';
 import '../../features/vente/presentation/pages/vente_page.dart';
+import '../../features/voyages/presentation/pages/historique_voyages_page.dart';
 import '../../features/voyages/presentation/pages/home_page.dart';
 import '../../features/voyages/presentation/pages/voyage_detail_page.dart';
 
@@ -23,6 +24,10 @@ class AppRoutes {
   static const login = '/login';
   static const home = '/';
   static const maRecette = '/ma-recette';
+
+  /// L'historique complet de mes départs. Hors de `/voyage/:id` : il ne porte
+  /// sur aucun voyage en particulier, c'est la liste de tous.
+  static const historiqueVoyages = '/mes-voyages';
 
   static String voyageDetail(int id) => '/voyage/$id';
   static String vente(int id) => '/voyage/$id/vente';
@@ -83,6 +88,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.maRecette,
         builder: (context, state) => const MaRecettePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.historiqueVoyages,
+        builder: (context, state) => const HistoriqueVoyagesPage(),
       ),
       GoRoute(
         path: '/voyage/:id',

@@ -62,6 +62,35 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
     viennent pas d'un car plein mais d'un siège pris au hasard alors qu'un autre était libre. Un
     rappel s'affiche aussi à la sélection : le vendeur passe à l'étape suivante dès qu'il touche un
     siège, il ne relira pas la légende.
+  - **La légende EST faite du plan** (04/11/2026, `seat_grid.dart`). Chaque pastille est peinte par
+    `_apparence()`, la fonction qui peint les sièges — elle ne les décrit plus, elle en est faite.
+    Les deux se peignaient chacun de leur côté et **avaient déjà divergé** : la pastille « Occupé »
+    était remplie d'`outlineVariant` quand le siège l'est de `surfaceContainerHighest`, et celle de
+    l'alerte aval n'avait **aucun fond** alors que le siège en porte un. Une légende qui ne montre
+    pas ce que montre le plan ne se lit pas comme un défaut : elle se lit comme une couleur de plus,
+    et l'on cherche un état qui n'existe pas.
+  - !! **Le CONFLIT manquait entièrement à la légende**, alors que le plan pose un triangle rouge
+    sur les sièges concernés et que le web, lui, l'explique. Un repère qui apparaît sans être
+    expliqué fait hésiter le vendeur sur un siège qu'il a pourtant le droit de vendre.
+  - !! **ET LA REVENTE NE SE VOYAIT PAS DU TOUT** (05/11/2026). Un siège revendu porte deux billets
+    sur des tronçons disjoints : dès que l'un des deux recouvre le tronçon affiché, le siège y est
+    **occupé** — c'est son cas principal. La revente étant testée APRÈS l'occupation dans la
+    cascade de couleurs, elle ne pouvait se montrer que sur le cas rare, et la ligne de légende qui
+    en dépend ne s'affichait jamais. Le plan du web, lui, a sa propre règle `revendu && isOccupe` :
+    le mobile en était resté à une moitié de la règle. Un siège occupé ET revendu garde désormais
+    la **bordure** de la revente (c'est elle qui porte le signal) et un fond qui dit l'occupation —
+    les deux informations sont vraies, aucune n'efface l'autre.
+  - La pastille « Revendu » de la légende prend la variante que **ce plan-ci** porte réellement
+    (libre ou occupée) : montrer la variante libre devant un plan où tous les sièges revendus sont
+    occupés redonnerait à chercher une couleur absente, à une nuance près.
+  - Vérifié **sur l'émulateur** le 05/11/2026, départ `LI-ABI-KOR-0001-V34` : siège 2 occupé et
+    revendu désormais distinct des sièges 1/3/4 gris, siège 3 en conflit, siège 70 vendu en aval,
+    et les cinq lignes de légende correspondant aux repères effectivement posés sur le plan.
+  - **Légende adaptative sur les TROIS repères** (revendu, aval, conflit) et non sur le seul aval :
+    une ligne de plus sur un écran de téléphone se paie. !! **La condition est celle du RENDU, pas
+    celle de la donnée** — un siège « revendu » n'est peint comme tel que s'il est libre et sans
+    alerte aval (occupé il est gris, en alerte l'ambre passe devant). Tester `s.revendu` seul
+    annoncerait une couleur introuvable sur le plan.
 - **Bagage** : lié au billet si la permission `Bagage/CREER` est accordée, avec **montant forçable**
   (vide = calcul serveur d'après la grille de poids ; renseigné = `BagageInput.montant`). Le **reçu est
   proposé dès l'enregistrement** (à la vente comme dans « Mes ventes »).
@@ -275,17 +304,66 @@ Au lancement, un refresh silencieux tente l'**auto-login**. Déconnexion : `/api
     ligne, désactivées avec le motif affiché.
   - **Interdit hors ligne** : désistement (remboursement — caisse de gare), modification d'un billet
     ou d'un bagage, réservation, récompense de fidélité (deux appareils brûleraient la même).
-- **À venir** : bilan de recette **par période** (aujourd'hui / 7j / 30j) incluant les voyages
-  clôturés — nécessite un endpoint perso côté backend (`/api/stats/commercial` étant réservé à
-  l'admin) ; fidélité à la vente.
+- **Ma recette — entre deux dates, voyages clôturés compris** (04/11/2026, `features/recette/`).
+  L'écran NE DÉRIVE PLUS son cumul de la liste d'accueil : il lit `GET /api/commercial/me`.
+  - **Pourquoi** : le cumul local ne portait que sur les voyages **actifs**. Un départ sortait de la
+    recette à l'instant où son car arrivait — le vendeur perdait sa journée au moment même où il la
+    terminait. Le serveur, lui, sait compter les départs clos.
+  - **Deux chiffres côte à côte** : la **période** (deux dates au choix, un seul sélecteur) et le
+    **total depuis toujours**. Sans le second, un jour creux laisserait croire que le compteur est
+    reparti de zéro. Les bornes affichées sont celles que le **serveur** a retenues, pas celles
+    qu'on lui a demandées : il ramène le début au premier instant du jour et la fin au dernier.
+  - **Pas de date future** dans le sélecteur : on ne vend pas demain, et une borne au-delà
+    n'ajouterait que des jours vides à un chiffre pourtant juste.
+  - **Aucun repli hors ligne**, contrairement au reste de l'application : un bilan est de la
+    consultation. Servir un chiffre d'hier sans pouvoir dire de quand il date ferait prendre un
+    écart de fraîcheur pour un écart de recette — sur de l'argent, ce doute ne se lève plus.
+  - !! **Le panier moyen est calculé par le serveur** et non ici : un bagage est un supplément à une
+    vente, pas une vente de plus. Cette définition ne doit s'écrire qu'à un seul endroit.
+- **Mes voyages — l'historique complet, paginé** (04/11/2026, `/mes-voyages`,
+  `GET /api/commercial/me/voyages`). Accessible depuis l'accueil et depuis « Ma recette ».
+  - **Un écran à part de l'accueil** : l'accueil porte les départs **actifs**, ceux sur lesquels on
+    agit — il est armé pour le hors ligne et se garde en copie locale. Ici on consulte, et le réseau
+    est exigé : donner un cache à l'historique mettrait toute la carrière du vendeur sur son
+    téléphone, pour un écran qu'il ouvre de temps en temps.
+  - !! **La liste contient aussi les départs EN COURS**, signalés par un badge. Ce n'est pas un
+    filtre oublié : la somme des recettes de cette liste doit retomber sur le total de « Ma
+    recette ». Un historique qui s'arrêterait aux voyages clos montrerait moins que le total qu'il
+    accompagne.
+  - **Seul un départ en cours s'ouvre** : la fiche de détail se compose à partir des voyages actifs
+    (`voyageByIdProvider`), un départ clôturé y afficherait « ce voyage n'est plus actif ». Une
+    carte qui ne mène nulle part ne porte pas de chevron.
+  - **Les DEUX états portent un badge** (05/11/2026) : « En cours » en couleur d'accent, « Clôturé »
+    en sobre. Ne marquer que le premier laissait le reste de la liste sans qualificatif, et une
+    absence de badge se lit comme une information manquante, pas comme un départ terminé. Le poids
+    visuel les sépare : « En cours » appelle un geste — des ventes à faire, une caisse à compter —,
+    « Clôturé » ne demande rien.
+  - **Charger la suite est un GESTE**, pas un effet du défilement : sur une connexion irrégulière,
+    une liste qui part chercher toute seule dépense le réseau du vendeur sans le lui demander, et
+    échoue sans qu'il comprenne pourquoi. Le pied de liste dit toujours où l'on en est — reste à
+    charger, chargement, échec réessayable, fin de l'historique. **Un échec ne remplace pas les
+    pages déjà lues** ; déduplication par identifiant en ceinture, un départ créé entre deux pages
+    décalant tout d'un rang.
+- **Actualiser un départ** (04/11/2026, `voyage_detail_page.dart`) : tirer-pour-rafraîchir **et**
+  bouton dans la barre de titre. La fiche se composait depuis `mesVoyagesProvider`, chargé une fois
+  à l'ouverture de l'application — or ce qu'elle montre vit sans elle : **une gare qui réceptionne
+  fait avancer la position du car**, et la frise des horaires restait sur la gare précédente jusqu'à
+  ce que le vendeur quitte l'application. Deux chemins pour un même geste parce que le
+  tirer-pour-rafraîchir est le réflexe sur téléphone mais ne se DEVINE pas — c'est justement ce que
+  personne ne trouvait.
+- **À venir** : fidélité à la vente.
 
 ## Développement
 
 ```bash
-dart run build_runner watch --delete-conflicting-outputs   # régénération continue
+dart run build_runner watch   # régénération continue
 # !! sur ce poste, la compilation AOT du script de build est bloquée par une stratégie de contrôle
 # d'application Windows (« gen_snapshot.exe »). Ajouter --force-jit pour passer outre :
-#   dart run build_runner build --delete-conflicting-outputs --force-jit
+#   dart run build_runner build --force-jit
+# !! --force-jit est une option de BUILD_RUNNER, pas de `dart run` : placée avant le nom du paquet,
+# elle fait répondre « Could not find an option named "--force-jit" ».
+# !! --delete-conflicting-outputs a été RETIRÉ de build_runner (« These options have been removed
+# and were ignored ») : le garder n'échoue pas, il avertit à chaque génération.
 flutter analyze
 flutter test
 ```

@@ -28,6 +28,14 @@ class HomePage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Mes voyages'),
         actions: [
+          // L'HISTORIQUE EST À CÔTÉ DE LA RECETTE, et non dans le menu du
+          // profil : les deux répondent à la même question — « qu'ai-je fait ? »
+          // —, l'une en argent, l'autre en départs.
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Mes voyages (historique)',
+            onPressed: () => context.push(AppRoutes.historiqueVoyages),
+          ),
           IconButton(
             icon: const Icon(Icons.account_balance_wallet_outlined),
             tooltip: 'Ma recette',

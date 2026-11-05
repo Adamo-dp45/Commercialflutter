@@ -8,6 +8,7 @@ import '../../../../core/offline/synchronisateur.dart';
 import '../../domain/repositories/voyage_repository.dart';
 import '../datasources/voyage_remote_datasource.dart';
 import '../models/voyage_commercial.dart';
+import '../models/voyage_historique.dart';
 
 /// La liste des départs vient du serveur, et s'y garde en copie ; les gestes de progression
 /// s'enregistrent en file quand le réseau manque.
@@ -55,6 +56,17 @@ class VoyageRepositoryImpl implements VoyageRepository {
       return [for (final v in cache) VoyageCommercial.fromJson(v)];
     }
   }
+
+  /// L'historique passe DROIT au réseau : aucune copie locale, aucun repli.
+  ///
+  /// La copie locale des voyages ACTIFS existe pour que le vendeur puisse
+  /// continuer à travailler après un redémarrage en route ; l'historique, lui,
+  /// ne sert aucun geste. Lui donner un cache reviendrait à garder sur le
+  /// téléphone toute la carrière du vendeur pour un écran qu'il ouvre de temps
+  /// en temps — et à montrer une page tronquée sans pouvoir dire qu'elle l'est.
+  @override
+  Future<PageVoyages> historique({int page = 1, int parPage = 20}) =>
+      _remote.historique(page: page, parPage: parPage);
 
   /// Déclare que le car a atteint [gareId].
   ///

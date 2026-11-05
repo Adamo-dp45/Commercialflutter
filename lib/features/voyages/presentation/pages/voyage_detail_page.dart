@@ -21,6 +21,17 @@ class VoyageDetailPage extends ConsumerWidget {
 
   final int voyageId;
 
+  /// Recharge la liste des départs, donc cette fiche.
+  ///
+  /// `mesVoyagesProvider` est la source UNIQUE de l'écran (`voyageByIdProvider`
+  /// y puise) : l'invalider suffit, et aucun second chemin ne peut en diverger.
+  /// Hors ligne, le dépôt retombe sur la copie locale — on ne perd donc pas la
+  /// fiche, on ne la rafraîchit simplement pas.
+  Future<void> _refresh(WidgetRef ref) async {
+    ref.invalidate(mesVoyagesProvider);
+    await ref.read(mesVoyagesProvider.future);
+  }
+
   Future<bool> _confirm(BuildContext context, String message) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -61,6 +72,8 @@ class VoyageDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final voyage = ref.watch(voyageByIdProvider(voyageId));
     final busy = ref.watch(voyageActionsProvider);
+    final enChargement =
+        ref.watch(mesVoyagesProvider.select((v) => v.isLoading));
     /*
       ARME la vente hors ligne dès l'ouverture du départ : téléchargement de l'instantané (ligne,
       sièges, billets, grille tarifaire, plafond de remise) pendant qu'il y a encore du réseau, et
@@ -92,103 +105,133 @@ class VoyageDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(voyage.libelleDepart),
+        actions: [
+          IconButton(
+            // Désactivé PENDANT le chargement, et l'icône cède la place au
+            // rouleau : sans ce retour, le vendeur appuie trois fois de suite
+            // sur un réseau lent et croit le bouton mort.
+            onPressed: enChargement ? null : () => _refresh(ref),
+            tooltip: 'Actualiser ce départ',
+            icon: enChargement
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.4),
+                  )
+                : const Icon(Icons.refresh),
+          ),
+        ],
         // Sous le titre : ce qui reste à remonter. Le vendeur doit le voir sans le chercher.
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(0),
           child: BandeauHorsLigne(),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
-          _HeaderCard(voyage: voyage),
-          const SizedBox(height: 16),
-          if (peutVendre) ...[
-            FilledButton.icon(
-              onPressed: () => context.push(AppRoutes.vente(voyage.id)),
-              icon: const Icon(Icons.point_of_sale),
-              label: const Text('Vendre un billet'),
+      /*
+        ACTUALISER : la fiche se compose à partir de `mesVoyagesProvider`, chargé une fois à
+        l'ouverture de l'application. Or ce que montre cet écran VIT SANS LUI — une gare qui
+        réceptionne fait avancer la position du car, et la frise des horaires restait sur la gare
+        précédente jusqu'à ce que le vendeur quitte l'application. Il n'avait aucun geste pour la
+        remettre à jour.
+
+        DEUX CHEMINS POUR UN MÊME GESTE : le tirer-pour-rafraîchir, et un bouton dans la barre de
+        titre. Le premier est le réflexe sur téléphone, mais il ne se DEVINE pas — c'est justement
+        ce que personne ne trouvait.
+      */
+      body: RefreshIndicator(
+        onRefresh: () => _refresh(ref),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          children: [
+            _HeaderCard(voyage: voyage),
+            const SizedBox(height: 16),
+            if (peutVendre) ...[
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.vente(voyage.id)),
+                icon: const Icon(Icons.point_of_sale),
+                label: const Text('Vendre un billet'),
+              ),
+              const SizedBox(height: 8),
+            ],
+            OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutes.mesVentes(voyage.id)),
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('Mes ventes (réimprimer / corriger)'),
             ),
             const SizedBox(height: 8),
-          ],
-          OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.mesVentes(voyage.id)),
-            icon: const Icon(Icons.receipt_long_outlined),
-            label: const Text('Mes ventes (réimprimer / corriger)'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.manifeste(voyage.id)),
-            icon: const Icon(Icons.people_outline),
-            label: const Text('Manifeste des passagers'),
-          ),
-          const SizedBox(height: 8),
-          // CONTRÔLE AU QUAI : il DEMANDE DU RÉSEAU, contrairement à tout le reste de cet écran.
-          // Le téléphone ne détient ni le secret qui signe les QR, ni l'état des autres contrôles :
-          // il ne peut donc ni reconnaître un faux, ni voir qu'un billet est déjà monté. L'écran
-          // le dit quand l'appel échoue, plutôt que de promettre un verdict qu'il ne tient pas.
-          OutlinedButton.icon(
-            onPressed: () => context.push(AppRoutes.controle(voyage.id)),
-            icon: const Icon(Icons.qr_code_scanner_outlined),
-            label: const Text('Contrôler les billets (scan)'),
-          ),
-          const SizedBox(height: 8),
-          // Toujours offert, même file vide : c'est là que le vendeur vient vérifier ce qui est
-          // passé, et le chercher ne doit pas dépendre d'un état qu'il ne contrôle pas.
-          _BoutonOperations(voyageId: voyage.id),
-          const SizedBox(height: 16),
-          _SectionTitle('Ma performance'),
-          _PerfCard(voyage: voyage),
-          const SizedBox(height: 16),
-          _SectionTitle('Itinéraire'),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ProgressionView(voyage: voyage),
+            OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutes.manifeste(voyage.id)),
+              icon: const Icon(Icons.people_outline),
+              label: const Text('Manifeste des passagers'),
             ),
-          ),
-          const SizedBox(height: 20),
-          _Actions(
-            voyage: voyage,
-            busy: busy,
-            onAvancer: () async {
-              final next = voyage.prochainArret;
-              if (next == null) return;
-              if (!await _confirm(
-                context,
-                'Confirmer que le car est arrivé à ${next.libelle} ?',
-              )) {
-                return;
-              }
-              if (!context.mounted) return;
-              await _run(
-                context,
-                ref,
-                () => ref.read(voyageActionsProvider.notifier).avancer(
-                      voyageId: voyage.id,
-                      gareId: next.id,
-                    ),
-                'Position mise à jour : ${next.libelle}.',
-              );
-            },
-            onRepartir: () async {
-              if (!await _confirm(
-                context,
-                'Confirmer le départ du car de ${voyage.garecouranteLibelle ?? 'cette gare'} ?',
-              )) {
-                return;
-              }
-              if (!context.mounted) return;
-              await _run(
-                context,
-                ref,
-                () =>
-                    ref.read(voyageActionsProvider.notifier).repartir(voyage.id),
-                'Départ enregistré.',
-              );
-            },
-          ),
-        ],
+            const SizedBox(height: 8),
+            // CONTRÔLE AU QUAI : il DEMANDE DU RÉSEAU, contrairement à tout le reste de cet écran.
+            // Le téléphone ne détient ni le secret qui signe les QR, ni l'état des autres contrôles :
+            // il ne peut donc ni reconnaître un faux, ni voir qu'un billet est déjà monté. L'écran
+            // le dit quand l'appel échoue, plutôt que de promettre un verdict qu'il ne tient pas.
+            OutlinedButton.icon(
+              onPressed: () => context.push(AppRoutes.controle(voyage.id)),
+              icon: const Icon(Icons.qr_code_scanner_outlined),
+              label: const Text('Contrôler les billets (scan)'),
+            ),
+            const SizedBox(height: 8),
+            // Toujours offert, même file vide : c'est là que le vendeur vient vérifier ce qui est
+            // passé, et le chercher ne doit pas dépendre d'un état qu'il ne contrôle pas.
+            _BoutonOperations(voyageId: voyage.id),
+            const SizedBox(height: 16),
+            _SectionTitle('Ma performance'),
+            _PerfCard(voyage: voyage),
+            const SizedBox(height: 16),
+            _SectionTitle('Itinéraire'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ProgressionView(voyage: voyage),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _Actions(
+              voyage: voyage,
+              busy: busy,
+              onAvancer: () async {
+                final next = voyage.prochainArret;
+                if (next == null) return;
+                if (!await _confirm(
+                  context,
+                  'Confirmer que le car est arrivé à ${next.libelle} ?',
+                )) {
+                  return;
+                }
+                if (!context.mounted) return;
+                await _run(
+                  context,
+                  ref,
+                  () => ref.read(voyageActionsProvider.notifier).avancer(
+                        voyageId: voyage.id,
+                        gareId: next.id,
+                      ),
+                  'Position mise à jour : ${next.libelle}.',
+                );
+              },
+              onRepartir: () async {
+                if (!await _confirm(
+                  context,
+                  'Confirmer le départ du car de ${voyage.garecouranteLibelle ?? 'cette gare'} ?',
+                )) {
+                  return;
+                }
+                if (!context.mounted) return;
+                await _run(
+                  context,
+                  ref,
+                  () =>
+                      ref.read(voyageActionsProvider.notifier).repartir(voyage.id),
+                  'Départ enregistré.',
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

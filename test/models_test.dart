@@ -4,10 +4,11 @@ import 'package:commercialflutter/features/auth/data/models/auth_user.dart';
 import 'package:commercialflutter/features/gestion/data/models/bagage_detail.dart';
 import 'package:commercialflutter/features/gestion/data/models/ticket_detail.dart';
 import 'package:commercialflutter/features/manifeste/data/models/passager_manifeste.dart';
-import 'package:commercialflutter/features/recette/domain/recette_synthese.dart';
+import 'package:commercialflutter/features/recette/data/models/bilan_commercial.dart';
 import 'package:commercialflutter/features/vente/presentation/providers/vente_controller.dart';
 import 'package:commercialflutter/features/voyages/data/models/arret.dart';
 import 'package:commercialflutter/features/voyages/data/models/voyage_commercial.dart';
+import 'package:commercialflutter/features/voyages/data/models/voyage_historique.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -60,25 +61,89 @@ void main() {
     });
   });
 
-  group('RecetteSynthese — agrégation', () {
-    test('cumule recette/billets/bagages et compte les voyages', () {
-      final s = RecetteSynthese.fromVoyages(const [
-        VoyageCommercial(id: 1, maRecette: 5000, mesTickets: 2, mesBagages: 1),
-        VoyageCommercial(id: 2, maRecette: 3000, mesTickets: 1, mesBagages: 0),
-      ]);
-      expect(s.recetteTotale, 8000);
-      expect(s.nbBillets, 3);
-      expect(s.nbBagages, 1);
-      expect(s.nbVoyages, 2);
-      expect(s.panierMoyen, 2667); // 8000 / 3 arrondi
-      expect(s.estVide, isFalse);
+  /*
+    CE GROUPE A REMPLACÉ `RecetteSynthese — agrégation`. L'application n'additionne plus elle-même
+    ses voyages actifs : le bilan vient de `GET /api/commercial/me`, qui sait compter les départs
+    CLÔTURÉS — ce que le cumul local ne pouvait pas faire, et qui effaçait la journée du vendeur au
+    moment où son car arrivait. Ce qui se teste ici n'est donc plus un calcul mais une LECTURE : un
+    champ absent de la réponse ne doit jamais devenir un écran vide ou une exception.
+  */
+  group('BilanCommercial — lecture de la réponse', () {
+    test('lit la période et le total', () {
+      final b = BilanCommercial.fromJson(const {
+        'periode': {'debut': '2026-11-01', 'fin': '2026-11-04'},
+        'surPeriode': {
+          'recette': 8000,
+          'recetteBillets': 6000,
+          'recetteBagages': 2000,
+          'nbBillets': 3,
+          'nbBagages': 1,
+          'panierMoyen': 2667,
+        },
+        'total': {'recette': 125000, 'nbBillets': 40, 'nbVoyages': 12},
+      });
+
+      expect(b.periode?.debut, '2026-11-01');
+      expect(b.surPeriode.recette, 8000);
+      expect(b.surPeriode.recetteBagages, 2000);
+      expect(b.surPeriode.panierMoyen, 2667);
+      expect(b.total.nbVoyages, 12);
+      expect(b.surPeriode.estVide, isFalse);
     });
 
-    test('liste vide → synthèse vide, panier moyen nul (pas de division par 0)',
+    test('réponse vide → zéros, jamais de nul (un écran de bilan reste lisible)',
         () {
-      final s = RecetteSynthese.fromVoyages(const []);
-      expect(s.estVide, isTrue);
-      expect(s.panierMoyen, 0);
+      final b = BilanCommercial.fromJson(const <String, dynamic>{});
+
+      expect(b.surPeriode.recette, 0);
+      expect(b.total.recette, 0);
+      expect(b.surPeriode.estVide, isTrue);
+      expect(b.periode, isNull);
+    });
+  });
+
+  group('PageVoyages — pagination de l\'historique', () {
+    PageVoyages page(int p, int pages) => PageVoyages.fromJson({
+          'voyages': const [
+            {
+              'id': 7,
+              'codevoyage': 'LI-ABI-KOR-0001-V3',
+              'numerodepart': 2,
+              'provenance': 'Abidjan',
+              'destination': 'Korhogo',
+              'cloture': true,
+              'maRecette': 9000,
+              'mesTickets': 2,
+              'mesBagages': 1,
+            }
+          ],
+          'page': p,
+          'parPage': 20,
+          'total': 41,
+          'pages': pages,
+        });
+
+    test('aUneSuite tant que la dernière page n\'est pas atteinte', () {
+      expect(page(1, 3).aUneSuite, isTrue);
+      expect(page(3, 3).aUneSuite, isFalse);
+    });
+
+    test('lit une ligne d\'historique, clôture comprise', () {
+      final v = page(1, 3).voyages.single;
+
+      expect(v.id, 7);
+      expect(v.cloture, isTrue);
+      expect(v.trajet, 'Abidjan → Korhogo');
+      expect(v.libelleDepart, 'Départ 2 · LI-ABI-KOR-0001-V3');
+      expect(v.maRecette, 9000);
+    });
+
+    test(
+        'sans numéro de départ, le libellé retombe sur le code et n\'affiche pas « Départ null »',
+        () {
+      const v = VoyageHistorique(id: 7, codevoyage: 'LI-ABI-KOR-0001-V3');
+
+      expect(v.libelleDepart, 'LI-ABI-KOR-0001-V3');
     });
   });
 
